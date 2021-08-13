@@ -1,18 +1,17 @@
-import { IPropertyDetail } from 'actions/parcelsActions';
-import { LayerPopupInformation } from '../leaflet/Map';
-import { geoJSON, Map as LeafletMap, GeoJSON, LatLng } from 'leaflet';
-import { useState } from 'react';
-import { MapProps as LeafletMapProps, Map as ReactLeafletMap } from 'react-leaflet';
-import { useLayerQuery, PARCELS_LAYER_URL, parcelLayerPopupConfig } from '../leaflet/LayerPopup';
-import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
 import { GeoJsonObject } from 'geojson';
+import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
+import { GeoJSON, geoJSON, LatLng, Map as LeafletMap } from 'leaflet';
+import { useState } from 'react';
+import { useAppSelector } from 'store/hooks';
+import { IPropertyDetail } from 'store/slices/properties';
+
+import { parcelLayerPopupConfig, PARCELS_LAYER_URL, useLayerQuery } from '../leaflet/LayerPopup';
+import { LayerPopupInformation } from '../leaflet/Map';
 import { PointFeature } from '../types';
-import { useSelector } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
 
 interface IUseActiveParcelMapLayer {
   /** the current leaflet map reference. This hook will add layers to this map reference. */
-  mapRef: React.RefObject<ReactLeafletMap<LeafletMapProps, LeafletMap>>;
+  mapRef: React.RefObject<LeafletMap>;
   /** The currently selected property on the map */
   selectedProperty?: IPropertyDetail | null;
   /** the currently displayed layer popup information */
@@ -36,12 +35,13 @@ const useActiveFeatureLayer = ({
 }: IUseActiveParcelMapLayer) => {
   const [activeFeatureLayer, setActiveFeatureLayer] = useState<GeoJSON>();
   const parcelsService = useLayerQuery(PARCELS_LAYER_URL);
-  const draftProperties: PointFeature[] = useSelector<RootState, PointFeature[]>(
-    state => state.parcel.draftParcels,
-  );
+  const draftProperties: PointFeature[] = useAppSelector(state => state.properties.draftParcels);
+
+  // add geojson layer to the map
   if (!!mapRef.current && !activeFeatureLayer) {
-    setActiveFeatureLayer(geoJSON().addTo(mapRef.current.leafletElement));
+    setActiveFeatureLayer(geoJSON().addTo(mapRef.current));
   }
+
   /**
    * if the layerPopup is currently being displayed, set the active feature to be the data displayed by the layerPopup.
    */
@@ -69,7 +69,7 @@ const useActiveFeatureLayer = ({
           .getBounds()
           .getCenter();
 
-        mapRef.current?.leafletElement.panTo(latLng);
+        mapRef.current?.panTo(latLng);
         setLayerPopup({
           title: 'Parcel Information',
           data: (parcelLayerFeature as any).properties,

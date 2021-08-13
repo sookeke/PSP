@@ -1,18 +1,16 @@
-import React from 'react';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme, { mount } from 'enzyme';
-import { AccessRequestDetails } from './Details';
 import { AccessRequestStatus } from 'constants/accessStatus';
-import { IAccessRequestModel } from '../interfaces';
+import { mount } from 'enzyme';
+import React from 'react';
 
-Enzyme.configure({ adapter: new Adapter() });
+import { IAccessRequestModel } from '../interfaces';
+import { AccessRequestDetails } from './Details';
 
 describe('Access request details', () => {
   it('Snapshot matches', () => {
     const request: IAccessRequestModel = {
       id: 1,
       username: 'idir/bceid',
-      userId: '2',
+      userId: 2,
       firstName: 'firstName',
       lastName: 'lastName',
       email: 'user@email.com',

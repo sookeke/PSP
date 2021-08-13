@@ -64,8 +64,21 @@ namespace Pims.Core.Http
         /// <returns></returns>
         public async Task<TModel> DeserializeAsync<TModel>(HttpResponseMessage response)
         {
-            using var stream = await response.Content.ReadAsStreamAsync();
-            return await JsonSerializer.DeserializeAsync<TModel>(stream, _serializeOptions);
+            var data = await response.Content.ReadAsByteArrayAsync();
+            var contentType = response.Content.Headers.ContentType;
+            try
+            {
+                if (contentType.MediaType.Contains("json", StringComparison.InvariantCultureIgnoreCase))
+                    return JsonSerializer.Deserialize<TModel>(data, _serializeOptions);
+            }
+            catch (Exception ex)
+            {
+                var body = Encoding.Default.GetString(data);
+                _logger.LogError(ex, $"Failed to deserialize response: {body}");
+                throw;
+            }
+
+            throw new HttpClientRequestException(response, $"Response must contain JSON but was '{contentType.MediaType}'.");
         }
 
         #region HttpResponseMessage Methods
@@ -142,6 +155,7 @@ namespace Pims.Core.Http
                 }
             }
 
+            _logger.LogInformation($"HTTP request made '{message.RequestUri}'");
             return await this.Client.SendAsync(message);
         }
 

@@ -1,12 +1,14 @@
-import React, { CSSProperties, memo, useEffect } from 'react';
-import { Form, FormControlProps } from 'react-bootstrap';
-import { getIn, FormikProps } from 'formik';
-import { DisplayError } from './DisplayError';
-import { SelectOption } from './Select';
-import { formikFieldMemo } from 'utils';
 import classNames from 'classnames';
 import TooltipIcon from 'components/common/TooltipIcon';
+import { FormikProps, getIn } from 'formik';
+import React, { CSSProperties, memo, useEffect } from 'react';
+import Form from 'react-bootstrap/Form';
+import { FormControlProps } from 'react-bootstrap/FormControl';
+import { formikFieldMemo } from 'utils';
+
 import TooltipWrapper from '../TooltipWrapper';
+import { DisplayError } from './DisplayError';
+import { SelectOption } from './Select';
 
 type RequiredAttributes = {
   /** The field name */

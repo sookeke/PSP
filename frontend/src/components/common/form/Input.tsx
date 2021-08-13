@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Form, FormControlProps } from 'react-bootstrap';
-import { useFormikContext, getIn } from 'formik';
-import { DisplayError } from './DisplayError';
 import classNames from 'classnames';
+import { getIn, useFormikContext } from 'formik';
+import React, { useEffect, useState } from 'react';
+import Form from 'react-bootstrap/Form';
+import { FormControlProps } from 'react-bootstrap/FormControl';
+import { CSSProperties } from 'styled-components';
+
 import TooltipIcon from '../TooltipIcon';
 import TooltipWrapper from '../TooltipWrapper';
-import { CSSProperties } from 'styled-components';
+import { DisplayError } from './DisplayError';
 
 type RequiredAttributes = {
   /** The field name */
@@ -96,7 +98,11 @@ export const Input: React.FC<InputProps> = ({
       controlId={`input-${field}`}
       className={classNames(!!required ? 'required' : '', outerClassName)}
     >
-      {!!label && <Form.Label>{label}</Form.Label>}
+      {!!label && (
+        <Form.Label>
+          {label} {!!tooltip && <TooltipIcon toolTipId={`${field}-tooltip`} toolTip={tooltip} />}
+        </Form.Label>
+      )}
       {!!tooltip && !label && <TooltipIcon toolTipId={`${field}-tooltip`} toolTip={tooltip} />}
 
       <TooltipWrapper toolTipId={`${field}-error-tooltip}`} toolTip={errorTooltip}>

@@ -1,10 +1,10 @@
-import React from 'react';
-import { createMemoryHistory } from 'history';
-import { render, cleanup, wait } from '@testing-library/react';
-import { Router } from 'react-router-dom';
 import { useKeycloak } from '@react-keycloak/web';
-import {} from 'reducers/networkReducer';
+import { cleanup, render, waitFor } from '@testing-library/react';
+import { createMemoryHistory } from 'history';
 import { useConfiguration } from 'hooks/useConfiguration';
+import React from 'react';
+import { Router } from 'react-router-dom';
+
 import { LogoutPage } from './Logout';
 jest.mock('@react-keycloak/web');
 jest.mock('hooks/useConfiguration');
@@ -14,7 +14,7 @@ describe('logout', () => {
   let { location } = window;
 
   beforeAll(() => {
-    delete window.location;
+    delete (window as any).location;
     window.location = { replace: jest.fn() } as any;
   });
 
@@ -49,6 +49,6 @@ describe('logout', () => {
       </Router>,
     );
 
-    await wait(() => expect(window.location.replace).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(window.location.replace).toHaveBeenCalledTimes(1));
   });
 });

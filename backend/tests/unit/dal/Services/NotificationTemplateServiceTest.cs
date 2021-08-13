@@ -7,7 +7,6 @@ using Pims.Dal.Services;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Xunit;
 using Entity = Pims.Dal.Entities;
 
@@ -272,7 +271,6 @@ namespace Pims.Dal.Test.Services
             init.SaveChanges();
 
             var service = helper.CreateService<NotificationTemplateService>(user);
-            var project = init.CreateProject(1);
             init.SaveChanges();
 
             var notifyService = helper.GetService<Mock<INotificationService>>();
@@ -280,7 +278,7 @@ namespace Pims.Dal.Test.Services
             notifyService.Setup(m => m.SendAsync(It.IsAny<Entity.NotificationQueue>()));
 
             // Act
-            var result = await service.SendNotificationAsync(template.Id, "test@test.com", project);
+            var result = await service.SendNotificationAsync(template.Id, "test@test.com");
 
             // Assert
             Assert.NotNull(result);
@@ -315,14 +313,13 @@ namespace Pims.Dal.Test.Services
                 Messages = new[] { new Notifications.Models.MessageResponse() { MessageId = Guid.NewGuid() } },
                 TransactionId = Guid.NewGuid()
             };
-            var project = init.CreateProject(1);
             init.SaveChanges();
 
             var notifyService = helper.GetService<Mock<INotificationService>>();
             notifyService.Setup(m => m.SendAsync(It.IsAny<Entity.NotificationQueue>())).ThrowsAsync(new Exception());
 
             // Act
-            await Assert.ThrowsAsync<Exception>(async () => await service.SendNotificationAsync(template.Id, "test@test.com", project));
+            await Assert.ThrowsAsync<Exception>(async () => await service.SendNotificationAsync(template.Id, "test@test.com"));
 
             // Assert
             var result = init.NotificationQueue.Find(template.Id);

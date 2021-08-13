@@ -17,7 +17,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Pims.Api.Helpers;
 using Pims.Api.Helpers.Authorization;
+using Pims.Api.Helpers.Exceptions;
+using Pims.Api.Helpers.Logging;
 using Pims.Api.Helpers.Mapping;
 using Pims.Api.Helpers.Middleware;
 using Pims.Api.Helpers.Routes.Constraints;
@@ -28,11 +31,14 @@ using Pims.Dal;
 using Pims.Dal.Helpers.Extensions;
 using Pims.Dal.Keycloak;
 using Pims.Geocoder;
+using Pims.Ltsa;
 using Pims.Notifications;
+using Prometheus;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -41,10 +47,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Pims.Api.Helpers.Logging;
-using Prometheus;
-using Pims.Api.Helpers.Exceptions;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Pims.Api
 {
@@ -89,14 +91,9 @@ namespace Pims.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSerilogging(this.Configuration);
-            var jsonSerializerOptions = new JsonSerializerOptions()
-            {
-                IgnoreNullValues = !String.IsNullOrWhiteSpace(this.Configuration["Serialization:Json:IgnoreNullValues"]) && Boolean.Parse(this.Configuration["Serialization:Json:IgnoreNullValues"]),
-                PropertyNameCaseInsensitive = !String.IsNullOrWhiteSpace(this.Configuration["Serialization:Json:PropertyNameCaseInsensitive"]) && Boolean.Parse(this.Configuration["Serialization:Json:PropertyNameCaseInsensitive"]),
-                PropertyNamingPolicy = this.Configuration["Serialization:Json:PropertyNamingPolicy"] == "CamelCase" ? JsonNamingPolicy.CamelCase : null,
-                WriteIndented = !string.IsNullOrWhiteSpace(this.Configuration["Serialization:Json:WriteIndented"]) && Boolean.Parse(this.Configuration["Serialization:Json:WriteIndented"])
-            };
-            services.AddMapster(jsonSerializerOptions, options =>
+            var jsonSerializerOptions = this.Configuration.GenerateJsonSerializerOptions();
+            var pimsOptions = this.Configuration.GeneratePimsOptions();
+            services.AddMapster(jsonSerializerOptions, pimsOptions, options =>
             {
                 options.Default.IgnoreNonMapped(true);
                 options.Default.IgnoreNullValues(true);
@@ -113,7 +110,7 @@ namespace Pims.Api
                 options.PropertyNameCaseInsensitive = jsonSerializerOptions.PropertyNameCaseInsensitive;
                 options.PropertyNamingPolicy = jsonSerializerOptions.PropertyNamingPolicy;
                 options.WriteIndented = jsonSerializerOptions.WriteIndented;
-                options.Converters.Add(new JsonStringEnumConverter());
+                options.Converters.Add(new JsonStringEnumMemberConverter());
                 options.Converters.Add(new Int32ToStringJsonConverter());
             });
             services.Configure<Core.Http.Configuration.AuthClientOptions>(this.Configuration.GetSection("Keycloak"));
@@ -208,7 +205,8 @@ namespace Pims.Api
             services.AddPimsKeycloakService();
             services.AddGeocoderService(this.Configuration.GetSection("Geocoder")); // TODO: Determine if a default value could be used instead.
             services.AddChesService(this.Configuration.GetSection("Ches"));
-            services.AddNotificationsService();
+            services.AddLtsaService(this.Configuration.GetSection("Ltsa"));
+            services.AddNotificationsService(this.Configuration.GetSection("Notifications"));
             services.AddSingleton<IAuthorizationHandler, RealmAccessRoleHandler>();
             services.AddTransient<IClaimsTransformation, KeycloakClaimTransformer>();
             services.AddHttpContextAccessor();
@@ -282,6 +280,7 @@ namespace Pims.Api
                 options.ForwardedHeaders = ForwardedHeaders.All;
                 options.AllowedHosts = this.Configuration.GetValue<string>("AllowedHosts")?.Split(';').ToList<string>();
             });
+            services.AddDatabaseDeveloperPageExceptionFilter();
         }
 
         /// <summary>
@@ -297,7 +296,8 @@ namespace Pims.Api
 
             if (!env.IsProduction())
             {
-                app.UseDatabaseErrorPage();
+                app.UseDeveloperExceptionPage();
+                app.UseMigrationsEndPoint();
             }
 
             app.UpdateDatabase<Startup>();
@@ -319,15 +319,15 @@ namespace Pims.Api
                 options.RoutePrefix = this.Configuration.GetValue<string>("Swagger:RoutePrefix");
             });
 
-            app.UseMiddleware(typeof(ErrorHandlingMiddleware));
-            app.UseMiddleware(typeof(ResponseTimeMiddleware));
+            app.UseMiddleware<ResponseTimeMiddleware>();
+            app.UseMiddleware<LogRequestMiddleware>();
+            app.UseMiddleware<LogResponseMiddleware>();
+            app.UseMiddleware<ErrorHandlingMiddleware>();
 
             //app.UseHttpsRedirection();
 
             app.UseRouting();
             app.UseCors();
-
-            app.UseMiddleware(typeof(LogRequestMiddleware));
 
             app.UseAuthentication();
             app.UseAuthorization();

@@ -1,23 +1,24 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { IBuilding, IParcel, IPropertyDetail } from 'actions/parcelsActions';
 import { IGeoSearchParams } from 'constants/API';
-import { BBox } from 'geojson';
-import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
-import { GeoJSON, LatLngBounds } from 'leaflet';
-import { useLeaflet } from 'react-leaflet';
-import { toast } from 'react-toastify';
-import { PointFeature } from '../types';
-import PointClusterer from './PointClusterer';
-import { useApi } from 'hooks/useApi';
-import { useSelector } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
-import { flatten, uniqBy } from 'lodash';
-import { tilesInBbox } from 'tiles-in-bbox';
-import { useFilterContext } from '../providers/FIlterProvider';
-import { MUNICIPALITY_LAYER_URL, useLayerQuery } from './LayerPopup';
-import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
 import { PropertyTypes } from 'constants/propertyTypes';
+import { BBox } from 'geojson';
+import { useApi } from 'hooks/useApi';
+import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
+import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+import { IBuilding, IParcel } from 'interfaces';
+import { GeoJSON, LatLngBounds } from 'leaflet';
+import { flatten, uniqBy } from 'lodash';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useMap } from 'react-leaflet';
+import { toast } from 'react-toastify';
+import { useAppSelector } from 'store/hooks';
+import { IPropertyDetail } from 'store/slices/properties';
+import { tilesInBbox } from 'tiles-in-bbox';
+
 import { useMapRefreshEvent } from '../hooks/useMapRefreshEvent';
+import { useFilterContext } from '../providers/FIlterProvider';
+import { PointFeature } from '../types';
+import { MUNICIPALITY_LAYER_URL, useLayerQuery } from './LayerPopup';
+import PointClusterer from './PointClusterer';
 
 export type InventoryLayerProps = {
   /** Latitude and Longitude boundary of the layer. */
@@ -142,18 +143,16 @@ export const InventoryLayer: React.FC<InventoryLayerProps> = ({
   onRequestData,
 }) => {
   const keycloak = useKeycloakWrapper();
-  const { map } = useLeaflet();
+  const mapInstance = useMap();
   const [features, setFeatures] = useState<PointFeature[]>([]);
   const [loadingTiles, setLoadingTiles] = useState(false);
   const { loadProperties } = useApi();
   const { changed: filterChanged } = useFilterContext();
   const municipalitiesService = useLayerQuery(MUNICIPALITY_LAYER_URL);
 
-  const draftProperties: PointFeature[] = useSelector<RootState, PointFeature[]>(
-    state => state.parcel.draftParcels,
-  );
+  const draftProperties: PointFeature[] = useAppSelector(state => state.properties.draftParcels);
 
-  if (!map) {
+  if (!mapInstance) {
     throw new Error('<InventoryLayer /> must be used under a <Map> leaflet component');
   }
 
@@ -161,12 +160,12 @@ export const InventoryLayer: React.FC<InventoryLayerProps> = ({
   useEffect(() => {
     const fit = async () => {
       if (filterChanged) {
-        map.fitBounds(defaultBounds, { maxZoom: 5 });
+        mapInstance.fitBounds(defaultBounds, { maxZoom: 5 });
       }
     };
 
     fit();
-  }, [map, filter, filterChanged]);
+  }, [mapInstance, filter, filterChanged]);
 
   minZoom = minZoom ?? 0;
   maxZoom = maxZoom ?? 18;
@@ -179,13 +178,10 @@ export const InventoryLayer: React.FC<InventoryLayerProps> = ({
       address: filter?.address,
       administrativeArea: filter?.administrativeArea,
       pid: filter?.pid,
-      projectNumber: filter?.projectNumber,
       agencies: filter?.agencies,
       classificationId: filter?.classificationId,
       minLandArea: filter?.minLandArea,
       maxLandArea: filter?.maxLandArea,
-      inSurplusPropertyProgram: filter?.inSurplusPropertyProgram,
-      inEnhancedReferralProcess: filter?.inEnhancedReferralProcess,
       floorCount: filter?.floorCount,
       predominateUseId: Number(filter?.predominateUseId),
       constructionTypeId: filter?.constructionTypeId,
@@ -211,7 +207,7 @@ export const InventoryLayer: React.FC<InventoryLayerProps> = ({
 
       const items = uniqBy(
         data,
-        point => `${point?.properties.id}-${point?.properties.propertyTypeId}`,
+        point => `${point?.properties?.id}-${point?.properties?.propertyTypeId}`,
       );
 
       /**
@@ -222,19 +218,20 @@ export const InventoryLayer: React.FC<InventoryLayerProps> = ({
 
       let results = items.filter(({ properties }: any) => {
         return (
-          properties.propertyTypeId === PropertyTypes.BUILDING ||
+          properties?.propertyTypeId === PropertyTypes.Building ||
           !hasBuildings(properties) ||
-          (properties.propertyTypeId === PropertyTypes.SUBDIVISION &&
+          (properties?.propertyTypeId === PropertyTypes.Subdivision &&
             keycloak.canUserEditProperty(properties))
         );
       }) as any;
 
+      // Fit to municipality bounds
       const administrativeArea = filter?.administrativeArea;
       if (results.length === 0 && !!administrativeArea) {
         const municipality = await municipalitiesService.findByAdministrative(administrativeArea);
         if (municipality) {
-          // Fit to municipality bounds
-          map.fitBounds((GeoJSON.geometryToLayer(municipality) as any)._bounds, { maxZoom: 11 });
+          const bounds = (GeoJSON.geometryToLayer(municipality) as any)._bounds;
+          mapInstance.fitBounds(bounds, { maxZoom: 11 });
         }
       }
       setFeatures(results);

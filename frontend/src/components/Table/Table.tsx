@@ -1,45 +1,50 @@
 import './Table.scss';
 
+import classnames from 'classnames';
+import classNames from 'classnames';
+import clsx from 'classnames';
+import { Button } from 'components/common/form/Button';
+import TooltipWrapper from 'components/common/TooltipWrapper';
+import { Form, Formik, FormikProps } from 'formik';
+import useDeepCompareCallback from 'hooks/useDeepCompareCallback';
+import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
+import useDeepCompareMemo from 'hooks/useDeepCompareMemo';
+import keys from 'lodash/keys';
+import map from 'lodash/map';
+import remove from 'lodash/remove';
+import uniq from 'lodash/uniq';
 import React, {
   PropsWithChildren,
   ReactElement,
-  useEffect,
   ReactNode,
+  useEffect,
   useMemo,
   useRef,
 } from 'react';
+import Collapse from 'react-bootstrap/Collapse';
+import Spinner from 'react-bootstrap/Spinner';
+import { FaAngleDown, FaAngleRight, FaUndo } from 'react-icons/fa';
 import {
-  useTable,
-  usePagination,
-  useFlexLayout,
-  TableOptions,
-  Row,
   Cell,
+  HeaderGroup,
   IdType,
+  Row,
+  TableOptions,
+  useFlexLayout,
+  usePagination,
   useRowSelect,
   useSortBy,
-  HeaderGroup,
+  useTable,
 } from 'react-table';
-import classnames from 'classnames';
-import { TablePagination } from '.';
-import { CellWithProps, ColumnInstanceWithProps } from './types';
-import { TableSort, SortDirection } from './TableSort';
-import { TablePageSizeSelector } from './PageSizeSelector';
-import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SELECTOR_OPTIONS } from './constants';
-import _, { keys } from 'lodash';
-import { Spinner, Collapse } from 'react-bootstrap';
-import { FaAngleDown, FaAngleRight, FaUndo } from 'react-icons/fa';
-import TooltipWrapper from 'components/common/TooltipWrapper';
-import ColumnSort from './ColumnSort';
-import ColumnFilter from './ColumnFilter';
-import { Form, Formik, FormikProps } from 'formik';
-import { Button } from 'components/common/form/Button';
-import classNames from 'classnames';
-import useDeepCompareMemo from 'hooks/useDeepCompareMemo';
-import useDeepCompareCallback from 'hooks/useDeepCompareCallback';
 import styled from 'styled-components';
-import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
-import clsx from 'classnames';
+
+import { TablePagination } from '.';
+import ColumnFilter from './ColumnFilter';
+import ColumnSort from './ColumnSort';
+import { DEFAULT_PAGE_SELECTOR_OPTIONS, DEFAULT_PAGE_SIZE } from './constants';
+import { TablePageSizeSelector } from './PageSizeSelector';
+import { SortDirection, TableSort } from './TableSort';
+import { CellWithProps, ColumnInstanceWithProps } from './types';
 
 const TableToolbarText = styled.p`
   flex: auto;
@@ -174,11 +179,11 @@ const IndeterminateCheckbox = React.forwardRef(
         setSelected([]);
       } else {
         if (currentSelected.find(selected => selected.id === row.original.id)) {
-          _.remove(currentSelected, row.original);
+          remove(currentSelected, row.original);
         } else {
           currentSelected.push(row.original);
         }
-        setSelected(_.uniq([...currentSelected]));
+        setSelected(uniq([...currentSelected]));
       }
     };
     rest.checked = isHeaderCheck
@@ -371,16 +376,20 @@ const Table = <T extends IIdentifiedObject, TFilter extends object = {}>(
   const renderHeaderCell = (column: ColumnInstanceWithProps<T>) => {
     return (
       <div className="sortable-column">
-        <ColumnFilter
-          onFilter={values => {
-            if (filterFormRef.current?.dirty) {
-              filterFormRef.current.submitForm();
-            }
-          }}
-          column={column}
-        >
-          {column.render('Header')}
-        </ColumnFilter>
+        {filterable ? (
+          <ColumnFilter
+            onFilter={values => {
+              if (filterFormRef.current?.dirty) {
+                filterFormRef.current.submitForm();
+              }
+            }}
+            column={column}
+          >
+            {column.render('Header')}
+          </ColumnFilter>
+        ) : (
+          column.render('Header')
+        )}
         <span style={{ flex: '1 1 auto' }} />
         <ColumnSort
           onSort={() => {
@@ -505,7 +514,7 @@ const Table = <T extends IIdentifiedObject, TFilter extends object = {}>(
             {footerGroup.headers.map(
               (column: ColumnInstanceWithProps<T> & { Footer?: Function }) => (
                 <div {...column.getHeaderProps(headerProps)} className="th">
-                  {column.Footer ? <column.Footer properties={_.map(page, 'original')} /> : null}
+                  {column.Footer ? <column.Footer properties={map(page, 'original')} /> : null}
                 </div>
               ),
             )}

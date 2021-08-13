@@ -1,12 +1,13 @@
 import { getIn, useFormikContext } from 'formik';
 import { groupBy, sortBy } from 'lodash';
+import _ from 'lodash';
 import React, { Fragment, useEffect, useState } from 'react';
 import { Highlighter, Menu, MenuItem } from 'react-bootstrap-typeahead';
+import styled from 'styled-components';
+
 import { Label } from '../Label';
 import { SelectOption, SelectOptions } from './Select';
 import { TypeaheadField } from './Typeahead';
-import _ from 'lodash';
-import styled from 'styled-components';
 
 /** this styled component is used to help condtionally apply bold font weight to items that have been assigned the bold-item className */
 const StyledMenuItemsDiv = styled.div`
@@ -100,9 +101,9 @@ export const ParentSelect: React.FC<IParentSelect> = ({
     if (value?.value) {
       return [value];
     }
-    if (value !== undefined && !_.isEmpty(value.toString())) {
+    if (value !== undefined && !_.isEmpty(value?.toString())) {
       /** select appropriate agency to set the field value to when present */
-      const option = options.find(x => x.value === value.toString() || x.value === value);
+      const option = options.find(x => x.value === value?.toString() || x.value === value);
       return option ? [option] : [];
     }
     return [];
@@ -133,7 +134,6 @@ export const ParentSelect: React.FC<IParentSelect> = ({
         multiple={enableMultiple}
         options={options}
         maxResults={options.length}
-        bsSize={'large'}
         filterBy={filterBy}
         getOptionByValue={enableMultiple ? (value: any) => value : getOptionByValue}
         multiSelections={multiSelections}
@@ -189,10 +189,9 @@ export const ParentSelect: React.FC<IParentSelect> = ({
                 {sortBy(resultGroup[parentId], (x: SelectOption) => x.value).map((i, index) => {
                   if (i.parent) {
                     return (
-                      <StyledMenuItemsDiv>
+                      <StyledMenuItemsDiv key={index + 1}>
                         <MenuItem
                           className={i.parentId === CHILDLESS_PARENT_ID ? 'bold-item' : 'menu-item'}
-                          key={index + 1}
                           option={i}
                           position={index + 1}
                         >

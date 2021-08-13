@@ -1,32 +1,30 @@
-import React from 'react';
-import { useHistory } from 'react-router-dom';
-import { Navbar, Nav, NavDropdown } from 'react-bootstrap';
 import './AppNavBar.scss';
-import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+
 import { Claims } from 'constants/claims';
-import { FaHome } from 'react-icons/fa';
-import queryString from 'query-string';
-import { SidebarContextType } from 'features/mapSideBar/hooks/useQueryParamSideBar';
 import { HelpContainer } from 'features/help/containers/HelpContainer';
+import { SidebarContextType } from 'features/mapSideBar/hooks/useQueryParamSideBar';
+import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+import queryString from 'query-string';
+import React from 'react';
+import Nav from 'react-bootstrap/Nav';
+import Navbar from 'react-bootstrap/Navbar';
+import NavDropdown from 'react-bootstrap/NavDropdown';
+import { FaHome } from 'react-icons/fa';
+import { useHistory } from 'react-router-dom';
 
 /**
  * Nav bar with role-based functionality.
  */
 function AppNavBar() {
-  const history = useHistory();
   return (
     <Navbar variant="dark" className="map-nav" expand="lg">
       <Navbar.Toggle aria-controls="collapse" className="navbar-dark mr-auto" />
       <Navbar.Collapse className="links mr-auto">
         <Nav>
-          <Nav.Item className="home-button" onClick={() => history.push('/mapview')}>
-            <FaHome size={20} />
-          </Nav.Item>
+          <HomeButton />
           <AdminDropdown />
-          <SubmitProperty />
+          <AddProperty />
           <ViewInventory />
-          <DisposeProjectsDropdown />
-          <ReportsDropdown />
         </Nav>
       </Navbar.Collapse>
       <HelpContainer />
@@ -34,10 +32,23 @@ function AppNavBar() {
   );
 }
 
+function HomeButton() {
+  const history = useHistory();
+  const keycloak = useKeycloakWrapper();
+  // We don't want to show the Home button to new users (who get redirected to Access Request page)
+  if (!keycloak?.roles?.length) return null;
+
+  return (
+    <Nav.Item aria-label="Home" className="home-button" onClick={() => history.push('/mapview')}>
+      <FaHome size={20} />
+    </Nav.Item>
+  );
+}
+
 /**
- * Submit Property navigation dropdown item.
+ * Add a property dropdown item.
  */
-function SubmitProperty() {
+const AddProperty = () => {
   const keycloak = useKeycloakWrapper();
   const history = useHistory();
   return keycloak.hasClaim(Claims.PROPERTY_ADD) ? (
@@ -65,10 +76,10 @@ function SubmitProperty() {
         })
       }
     >
-      Submit Property
+      Add a Property
     </Nav.Link>
   ) : null;
-}
+};
 
 /**
  * View Inventory navigation item.
@@ -103,63 +114,6 @@ function AdminDropdown() {
         Access Requests
       </NavDropdown.Item>
       <NavDropdown.Item onClick={() => history.push('/admin/agencies')}>Agencies</NavDropdown.Item>
-    </NavDropdown>
-  ) : null;
-}
-
-/**
- * Disposal Projects navigation dropdown menu.
- */
-function DisposeProjectsDropdown() {
-  const history = useHistory();
-  const keycloak = useKeycloakWrapper();
-  return keycloak.hasClaim(Claims.PROJECT_VIEW) ||
-    keycloak.hasClaim(Claims.DISPOSE_APPROVE) ||
-    keycloak.hasClaim(Claims.ADMIN_PROJECTS) ? (
-    <NavDropdown
-      className={
-        history.location.pathname.includes('dispose') ||
-        history.location.pathname.includes('projects')
-          ? 'active'
-          : 'idle'
-      }
-      title="Disposal Projects"
-      id="dispose"
-    >
-      {(keycloak.hasClaim(Claims.PROJECT_ADD) || keycloak.hasClaim(Claims.ADMIN_PROJECTS)) && (
-        <NavDropdown.Item onClick={() => history.push('/dispose')}>
-          Create Disposal Project
-        </NavDropdown.Item>
-      )}
-      {(keycloak.hasClaim(Claims.PROJECT_VIEW) || keycloak.hasClaim(Claims.ADMIN_PROJECTS)) && (
-        <NavDropdown.Item onClick={() => history.push('/projects/list')}>
-          View Projects
-        </NavDropdown.Item>
-      )}
-      {keycloak.hasClaim(Claims.DISPOSE_APPROVE) && (
-        <NavDropdown.Item onClick={() => history.push('/projects/approval/requests')}>
-          Approval Requests
-        </NavDropdown.Item>
-      )}
-    </NavDropdown>
-  ) : null;
-}
-
-/**
- * Reports navigation dropdown menu.
- */
-function ReportsDropdown() {
-  const history = useHistory();
-  const keycloak = useKeycloakWrapper();
-  return keycloak.hasClaim(Claims.REPORTS_VIEW) ? (
-    <NavDropdown
-      className={history.location.pathname.includes('reports') ? 'active' : 'idle'}
-      title="Reports"
-      id="reports"
-    >
-      {keycloak.hasClaim(Claims.REPORTS_SPL) && (
-        <NavDropdown.Item onClick={() => history.push('/reports/spl')}>SPL Report</NavDropdown.Item>
-      )}
     </NavDropdown>
   ) : null;
 }

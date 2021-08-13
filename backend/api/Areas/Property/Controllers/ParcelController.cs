@@ -1,20 +1,19 @@
-using System;
-using System.Collections.Generic;
 using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Pims.Api.Helpers.Exceptions;
+using Pims.Api.Helpers.Extensions;
 using Pims.Api.Policies;
 using Pims.Dal;
 using Pims.Dal.Security;
 using Swashbuckle.AspNetCore.Annotations;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using EModel = Pims.Dal.Entities.Models;
 using Entity = Pims.Dal.Entities;
 using Model = Pims.Api.Areas.Property.Models.Parcel;
-using Microsoft.AspNetCore.Http.Extensions;
-using Pims.Api.Helpers.Extensions;
-using Pims.Api.Helpers.Exceptions;
-using EModel = Pims.Dal.Entities.Models;
-using System.Linq;
 
 namespace Pims.Api.Areas.Property.Controllers
 {
@@ -30,7 +29,6 @@ namespace Pims.Api.Areas.Property.Controllers
     public class ParcelController : ControllerBase
     {
         #region Variables
-        private readonly ILogger<ParcelController> _logger;
         private readonly IPimsService _pimsService;
         private readonly IMapper _mapper;
         #endregion
@@ -39,12 +37,10 @@ namespace Pims.Api.Areas.Property.Controllers
         /// <summary>
         /// Creates a new instance of a ParcelController class.
         /// </summary>
-        /// <param name="logger"></param>
         /// <param name="pimsService"></param>
         /// <param name="mapper"></param>
-        public ParcelController(ILogger<ParcelController> logger, IPimsService pimsService, IMapper mapper)
+        public ParcelController(IPimsService pimsService, IMapper mapper)
         {
-            _logger = logger;
             _pimsService = pimsService;
             _mapper = mapper;
         }
@@ -61,7 +57,7 @@ namespace Pims.Api.Areas.Property.Controllers
         [Produces("application/json")]
         [ProducesResponseType(typeof(Model.ParcelModel), 200)]
         [SwaggerOperation(Tags = new[] { "parcel" })]
-        public IActionResult GetParcel(int id)
+        public IActionResult GetParcel(long id)
         {
             var entity = _pimsService.Parcel.Get(id);
             var parcel = _mapper.Map<Model.ParcelModel>(entity);
@@ -100,7 +96,7 @@ namespace Pims.Api.Areas.Property.Controllers
             filter.ThrowBadRequestIfNull($"The request must include a filter.");
             if (!filter.IsValid()) throw new BadRequestException("Parcel filter must contain valid values.");
 
-            var parcels = _pimsService.Parcel.Get((EModel.ParcelFilter)filter).ToArray();
+            var parcels = _pimsService.Parcel.Get(filter).ToArray();
             return new JsonResult(_mapper.Map<Model.ParcelModel[]>(parcels).ToArray());
         }
 
@@ -113,7 +109,7 @@ namespace Pims.Api.Areas.Property.Controllers
         [Produces("application/json")]
         [ProducesResponseType(typeof(Model.CheckPidAvailabilityResponseModel), 200)]
         [SwaggerOperation(Tags = new[] { "parcel" })]
-        public IActionResult IsPidAvailable(int parcelId, int pid)
+        public IActionResult IsPidAvailable(long parcelId, int pid)
         {
             var result = new Model.CheckPidAvailabilityResponseModel
             { Available = _pimsService.Parcel.IsPidAvailable(parcelId, pid) };
@@ -129,7 +125,7 @@ namespace Pims.Api.Areas.Property.Controllers
         [Produces("application/json")]
         [ProducesResponseType(typeof(Model.CheckPidAvailabilityResponseModel), 200)]
         [SwaggerOperation(Tags = new[] { "parcel" })]
-        public IActionResult IsPinAvailable(int parcelId, int pin)
+        public IActionResult IsPinAvailable(long parcelId, int pin)
         {
             var result = new Model.CheckPidAvailabilityResponseModel
             { Available = _pimsService.Parcel.IsPinAvailable(parcelId, pin) };
@@ -168,7 +164,7 @@ namespace Pims.Api.Areas.Property.Controllers
         [ProducesResponseType(typeof(Model.ParcelModel), 200)]
         [SwaggerOperation(Tags = new[] { "parcel" })]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "To support standardized routes (/update/{id})")]
-        public IActionResult UpdateParcel(int id, [FromBody] Model.ParcelModel model)
+        public IActionResult UpdateParcel(long id, [FromBody] Model.ParcelModel model)
         {
             var entity = _mapper.Map<Entity.Parcel>(model);
 
@@ -188,7 +184,7 @@ namespace Pims.Api.Areas.Property.Controllers
         [ProducesResponseType(typeof(Model.ParcelModel), 200)]
         [SwaggerOperation(Tags = new[] { "parcel" })]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "To support standardized routes (/update/{id})")]
-        public IActionResult UpdateParcelFinancials(int id, [FromBody] Model.ParcelModel model)
+        public IActionResult UpdateParcelFinancials(long id, [FromBody] Model.ParcelModel model)
         {
             var entity = _mapper.Map<Entity.Parcel>(model);
 
@@ -208,7 +204,7 @@ namespace Pims.Api.Areas.Property.Controllers
         [ProducesResponseType(typeof(Model.ParcelModel), 200)]
         [SwaggerOperation(Tags = new[] { "parcel" })]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "To support standardized routes (/delete/{id})")]
-        public IActionResult DeleteParcel(int id, [FromBody] Model.ParcelModel model)
+        public IActionResult DeleteParcel(long id, [FromBody] Model.ParcelModel model)
         {
             var entity = _mapper.Map<Entity.Parcel>(model);
 

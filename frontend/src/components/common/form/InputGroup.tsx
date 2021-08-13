@@ -1,12 +1,14 @@
 import './InputGroup.scss';
 
-import React, { CSSProperties } from 'react';
-import { FormControlProps, InputGroup as BootstrapInputGroup } from 'react-bootstrap';
-import { Input } from './Input';
-import { FastInput } from './FastInput';
-import { FormikProps } from 'formik';
 import classNames from 'classnames';
+import { FormikProps } from 'formik';
+import React, { CSSProperties } from 'react';
+import { FormControlProps } from 'react-bootstrap/FormControl';
+import BootstrapInputGroup from 'react-bootstrap/InputGroup';
+
 import { Label } from '../Label';
+import { FastInput } from './FastInput';
+import { Input } from './Input';
 
 type RequiredAttributes = {
   /** The field name */

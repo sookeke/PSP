@@ -1,21 +1,22 @@
-import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
-import React from 'react';
-import { Image, NavDropdown } from 'react-bootstrap';
-import { useConfiguration } from 'hooks/useConfiguration';
-import profileUrl from 'assets/images/profile.svg';
-import useCodeLookups from 'hooks/useLookupCodes';
-import styled from 'styled-components';
-import { FaSignOutAlt } from 'react-icons/fa';
-import * as API from 'constants/API';
-import { ILookupCode } from 'actions/lookupActions';
 import variables from '_variables.module.scss';
+import profileUrl from 'assets/images/profile.svg';
+import * as API from 'constants/API';
+import { useConfiguration } from 'hooks/useConfiguration';
+import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+import useLookupCodeHelpers from 'hooks/useLookupCodeHelpers';
+import React from 'react';
+import Image from 'react-bootstrap/Image';
+import NavDropdown from 'react-bootstrap/NavDropdown';
+import { FaSignOutAlt } from 'react-icons/fa';
+import { ILookupCode } from 'store/slices/lookupCodes';
+import styled from 'styled-components';
 
 /** the styling for the dropdown menu that appears after clicking the user's name */
 const StyleDropDown = styled(NavDropdown)`
   font-size: 14px;
   .dropdown-menu {
     width: 300px;
-    height: 150px;
+    padding: 0px;
   }
   .nav-link {
     color: #fff;
@@ -61,14 +62,14 @@ export const UserProfile: React.FC = () => {
       ? `${keycloak.firstName} ${keycloak.lastName}`
       : 'default');
   const configuration = useConfiguration();
-  const lookupCodes = useCodeLookups();
+  const lookupCodes = useLookupCodeHelpers();
   const agencyOptions = lookupCodes.getByType(API.AGENCY_CODE_SET_NAME);
   const roles = keycloak.roles.join(', ');
 
   return (
     <>
       <ProfileAvatar src={profileUrl} rounded />
-      <StyleDropDown className="px-0" title={displayName} id="user-dropdown">
+      <StyleDropDown className="px-0" title={displayName} id="user-dropdown" alignRight>
         <p style={{ margin: 5 }}>
           <b>
             {
@@ -78,15 +79,17 @@ export const UserProfile: React.FC = () => {
             }
           </b>
         </p>
-        <RolesBox>
-          <p style={{ margin: 5 }}>
-            <b>
-              System Role(s):
-              <br />
-            </b>
-            {roles}
-          </p>
-        </RolesBox>
+        {!!keycloak.roles.length && (
+          <RolesBox>
+            <p style={{ margin: 5 }}>
+              <b>
+                System Role(s):
+                <br />
+              </b>
+              {roles}
+            </p>
+          </RolesBox>
+        )}
         <NavDropdown.Item
           onClick={() => {
             keycloak.obj!.logout({ redirectUri: `${configuration.baseUrl}/logout` });

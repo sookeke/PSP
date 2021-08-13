@@ -41,7 +41,8 @@ namespace Pims.Dal.Helpers.Extensions
             if (permission.Length == 0) throw new ArgumentOutOfRangeException(nameof(permission));
 
             var roles = permission.Select(r => r.GetName()).ToArray();
-            return user.Claims.Where(c => c.Type == ClaimTypes.Role).All(c => roles.Contains(c.Value));
+            var claims = user.Claims.Where(c => c.Type == ClaimTypes.Role);
+            return roles.All(r => claims.Any(c => c.Value == r));
         }
 
         /// <summary>
@@ -155,7 +156,6 @@ namespace Pims.Dal.Helpers.Extensions
         public static T ThrowIfNotAllowedToEdit<T>(this ClaimsPrincipal user, string paramName, T entity, Permissions permission, string message = null) where T : BaseEntity
         {
             entity.ThrowIfNull(paramName);
-            entity.ThrowIfRowVersionNull(paramName);
             user.ThrowIfNotAuthorized(permission, message);
 
             return entity;
@@ -177,7 +177,6 @@ namespace Pims.Dal.Helpers.Extensions
         public static T ThrowIfNotAllowedToEdit<T>(this ClaimsPrincipal user, string paramName, T entity, Permissions[] permission, string message = null) where T : BaseEntity
         {
             entity.ThrowIfNull(paramName);
-            entity.ThrowIfRowVersionNull(paramName);
             user.ThrowIfNotAuthorized(permission, message);
 
             return entity;

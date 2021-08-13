@@ -1,6 +1,8 @@
 import * as React from 'react';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
 import { Link } from 'react-router-dom';
-import { Container, Row, Col } from 'react-bootstrap';
 
 const AccessDenied = () => {
   return (

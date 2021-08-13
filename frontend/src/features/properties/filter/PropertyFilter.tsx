@@ -1,31 +1,30 @@
 import './PropertyFilter.scss';
 
-import React, { useMemo, useRef, useState } from 'react';
-import { Col } from 'react-bootstrap';
-import { Formik, getIn } from 'formik';
-import { ILookupCode } from 'actions/lookupActions';
-import { Form, Select } from '../../../components/common/form';
-import { FilterBarSchema } from 'utils/YupSchema';
+import { ParentSelect } from 'components/common/form/ParentSelect';
 import ResetButton from 'components/common/form/ResetButton';
 import SearchButton from 'components/common/form/SearchButton';
-import { mapLookupCode, mapLookupCodeWithParentString } from 'utils';
-import { PropertyFilterOptions } from './';
-import { useRouterFilter } from 'hooks/useRouterFilter';
-import { IPropertyFilter } from './IPropertyFilter';
-import { TableSort } from 'components/Table/TableSort';
-import { FindMorePropertiesButton } from 'components/maps/FindMorePropertiesButton';
 import { TypeaheadField } from 'components/common/form/Typeahead';
-import { useDispatch } from 'react-redux';
-import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
-import { fetchPropertyNames } from 'actionCreators/propertyActionCreator';
-import { AsyncTypeahead } from 'react-bootstrap-typeahead';
-import { PropertyFilterAgencyOptions } from './PropertyFilterAgencyOptions';
-import styled from 'styled-components';
-import { ParentSelect } from 'components/common/form/ParentSelect';
+import { TableSort } from 'components/Table/TableSort';
 import { Claims } from 'constants/claims';
-import useLookupCodes from 'hooks/useLookupCodes';
-import { mapSelectOptionWithParent } from 'utils';
+import { usePropertyNames } from 'features/properties/common/slices/usePropertyNames';
+import { Formik, getIn } from 'formik';
+import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+import useLookupCodes from 'hooks/useLookupCodeHelpers';
 import { useMyAgencies } from 'hooks/useMyAgencies';
+import { useRouterFilter } from 'hooks/useRouterFilter';
+import React, { useMemo, useRef, useState } from 'react';
+import Col from 'react-bootstrap/Col';
+import { AsyncTypeahead } from 'react-bootstrap-typeahead';
+import { ILookupCode } from 'store/slices/lookupCodes';
+import styled from 'styled-components';
+import { mapLookupCode, mapLookupCodeWithParentString } from 'utils';
+import { mapSelectOptionWithParent } from 'utils';
+import { FilterBarSchema } from 'utils/YupSchema';
+
+import { Form, Select } from '../../../components/common/form';
+import { PropertyFilterOptions } from './';
+import { IPropertyFilter } from './IPropertyFilter';
+import { PropertyFilterAgencyOptions } from './PropertyFilterAgencyOptions';
 
 /**
  * PropertyFilter component properties.
@@ -79,7 +78,6 @@ export const PropertyFilter: React.FC<IPropertyFilterProps> = ({
   setTriggerFilterChanged,
 }) => {
   const [propertyFilter, setPropertyFilter] = React.useState<IPropertyFilter>(defaultFilter);
-  const dispatch = useDispatch();
   const keycloak = useKeycloakWrapper();
   const lookupCodes = useLookupCodes();
   const [initialLoad, setInitialLoad] = useState(false);
@@ -99,8 +97,9 @@ export const PropertyFilter: React.FC<IPropertyFilterProps> = ({
   );
   const classifications = lookupCodes.getPropertyClassificationOptions();
   const adminAreas = (adminAreaLookupCodes ?? []).map(c => mapLookupCode(c));
-  const [clear, setClear] = useState(false);
-  const [options, setOptions] = useState([]);
+  const [clear, setClear] = useState<boolean | undefined>(false);
+  const [options, setOptions] = useState<string[]>([]);
+  const { fetchPropertyNames } = usePropertyNames();
 
   const initialValues = useMemo(() => {
     const values = { ...defaultFilter, ...propertyFilter };
@@ -134,7 +133,7 @@ export const PropertyFilter: React.FC<IPropertyFilterProps> = ({
     setClear(true);
   };
 
-  const [findMoreOpen, setFindMoreOpen] = useState<boolean>(false);
+  const [findMoreOpen] = useState<boolean>(false);
   const ref = useRef<any>();
 
   return (
@@ -151,21 +150,6 @@ export const PropertyFilter: React.FC<IPropertyFilterProps> = ({
       {({ isSubmitting, setFieldValue, values }) => (
         <Form>
           <Form.Row className="map-filter-bar">
-            <FindMorePropertiesButton
-              buttonText="Find available surplus properties"
-              onEnter={() => {
-                setFindMoreOpen(true);
-                setFieldValue('surplusFilter', true);
-                setFieldValue('includeAllProperties', true);
-                !keycloak.hasClaim(Claims.ADMIN_PROPERTIES) && setFieldValue('agencies', undefined);
-              }}
-              onExit={() => {
-                setFindMoreOpen(false);
-                setFieldValue('surplusFilter', false);
-              }}
-            />
-            <div className="vl"></div>
-
             <AgencyCol>
               {showAllAgencySelect ? (
                 <PropertyFilterAgencyOptions disabled={findMoreOpen} agencies={agencies} />
@@ -192,7 +176,7 @@ export const PropertyFilter: React.FC<IPropertyFilterProps> = ({
                 placeholder="Property name"
                 onSearch={() => {
                   setInitialLoad(true);
-                  fetchPropertyNames(keycloak.agencyId!)(dispatch).then(results => {
+                  fetchPropertyNames(keycloak.agencyId!).then(results => {
                     setOptions(results);
                     setInitialLoad(false);
                   });

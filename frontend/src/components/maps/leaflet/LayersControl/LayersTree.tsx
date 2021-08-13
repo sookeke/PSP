@@ -1,16 +1,20 @@
-import { Formik, Form as FormikForm, getIn, useFormikContext } from 'formik';
-import { noop, flatten } from 'lodash';
-import * as React from 'react';
-import { ListGroup, Form } from 'react-bootstrap';
-import { FaAngleDown, FaAngleRight } from 'react-icons/fa';
-import TreeMenu, { TreeMenuItem, TreeNode } from 'react-simple-tree-menu';
 import 'react-simple-tree-menu/dist/main.css';
-import styled from 'styled-components';
-import { layersTree } from './data';
-import * as L from 'leaflet';
-import { useLeaflet } from 'react-leaflet';
-import { ILayerItem } from './types';
+
 import variables from '_variables.module.scss';
+import { Form as FormikForm, Formik, getIn, useFormikContext } from 'formik';
+import L from 'leaflet';
+import flatten from 'lodash/flatten';
+import noop from 'lodash/noop';
+import React, { useEffect } from 'react';
+import Form from 'react-bootstrap/Form';
+import ListGroup from 'react-bootstrap/ListGroup';
+import { FaAngleDown, FaAngleRight } from 'react-icons/fa';
+import { useMap } from 'react-leaflet';
+import TreeMenu, { TreeMenuItem, TreeNode } from 'react-simple-tree-menu';
+import styled from 'styled-components';
+
+import { layersTree } from './data';
+import { ILayerItem } from './types';
 
 const ParentNode = styled(ListGroup.Item)`
   display: flex;
@@ -132,20 +136,20 @@ const LayerNodeCheckbox: React.FC<{ name: string; label: string; color: string }
 const featureGroup = new L.FeatureGroup();
 const LeafletListenerComp = () => {
   const { values } = useFormikContext<{ layers: ILayerItem[] }>();
-  const { map } = useLeaflet();
+  const mapInstance = useMap();
 
-  React.useEffect(() => {
-    if (map) {
-      featureGroup.addTo(map);
+  useEffect(() => {
+    if (mapInstance) {
+      featureGroup.addTo(mapInstance);
     }
 
     return () => {
-      map?.removeLayer(featureGroup);
+      mapInstance?.removeLayer(featureGroup);
     };
-  }, [map]);
+  }, [mapInstance]);
 
-  React.useEffect(() => {
-    if (!!map) {
+  useEffect(() => {
+    if (!!mapInstance) {
       const currentLayers = Object.keys((featureGroup as any)._layers)
         .map(k => (featureGroup as any)._layers[k])
         .map(l => l.options)
@@ -169,7 +173,7 @@ const LeafletListenerComp = () => {
         }
       });
     }
-  }, [values, map]);
+  }, [values, mapInstance]);
 
   return null;
 };

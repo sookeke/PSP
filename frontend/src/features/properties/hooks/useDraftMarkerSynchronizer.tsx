@@ -1,14 +1,14 @@
-import * as React from 'react';
-import { storeDraftParcelsAction } from 'actions/parcelsActions';
-import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
-import debounce from 'lodash/debounce';
-import { useFormikContext, getIn } from 'formik';
-import { useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import _ from 'lodash';
-import { RootState } from 'reducers/rootReducer';
 import { PointFeature } from 'components/maps/types';
 import { PropertyTypes } from 'constants/propertyTypes';
+import { getIn, useFormikContext } from 'formik';
+import useDeepCompareEffect from 'hooks/useDeepCompareEffect';
+import _ from 'lodash';
+import debounce from 'lodash/debounce';
+import * as React from 'react';
+import { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+import { useAppSelector } from 'store/hooks';
+import { storeDraftParcels } from 'store/slices/properties';
 
 /**
  * Get a list of draft markers from the current form values.
@@ -38,7 +38,7 @@ const getDraftMarkers = (values: any, initialValues: any, nameSpace: string) => 
         id: 0,
         name: values.name?.length ? values.name : 'New Parcel',
         propertyTypeId:
-          values.parcelId !== undefined ? PropertyTypes.DRAFT_BUILDING : PropertyTypes.DRAFT_PARCEL,
+          values.parcelId !== undefined ? PropertyTypes.DraftBuilding : PropertyTypes.DraftParcel,
       },
     },
   ];
@@ -50,16 +50,14 @@ const getDraftMarkers = (values: any, initialValues: any, nameSpace: string) => 
  */
 const useDraftMarkerSynchronizer = (nameSpace: string) => {
   const { values, initialValues } = useFormikContext();
-  const properties = useSelector<RootState, PointFeature[]>(state => [
-    ...state.parcel.draftParcels,
-  ]);
+  const properties = useAppSelector(state => [...state.properties.draftParcels]);
   const dispatch = useDispatch();
   const nonDraftProperties = React.useMemo(
     () =>
       properties.filter(
         (property: PointFeature) =>
           property.properties.propertyTypeId !== undefined &&
-          [PropertyTypes.BUILDING, PropertyTypes.PARCEL].includes(
+          [PropertyTypes.Building, PropertyTypes.Parcel].includes(
             property.properties.propertyTypeId,
           ),
       ),
@@ -68,7 +66,7 @@ const useDraftMarkerSynchronizer = (nameSpace: string) => {
 
   React.useEffect(() => {
     return () => {
-      dispatch(storeDraftParcelsAction([]));
+      dispatch(storeDraftParcels([]));
     };
   }, [dispatch]);
 
@@ -93,9 +91,9 @@ const useDraftMarkerSynchronizer = (nameSpace: string) => {
                 dbProperty.geometry.coordinates[1] === draftMarker.geometry.coordinates[1],
             ) === undefined,
         );
-        dispatch(storeDraftParcelsAction(newDraftMarkers as PointFeature[]));
+        dispatch(storeDraftParcels(newDraftMarkers as PointFeature[]));
       } else {
-        dispatch(storeDraftParcelsAction([]));
+        dispatch(storeDraftParcels([]));
       }
     },
     [dispatch],

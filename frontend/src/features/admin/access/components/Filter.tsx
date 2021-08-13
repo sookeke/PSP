@@ -1,30 +1,32 @@
-import * as React from 'react';
 import './Filter.scss';
-import { Container, Row, Col, Form } from 'react-bootstrap';
-import { Menu, IMenuItemProps } from 'components/menu/Menu';
-import { FaCaretDown, FaSearch, FaUndo } from 'react-icons/fa';
-import useCodeLookups from 'hooks/useLookupCodes';
-import { useDispatch } from 'react-redux';
-import { getFetchLookupCodeAction } from 'actionCreators/lookupCodeActionCreator';
+
 import { Button } from 'components/common/form/Button';
 import TooltipWrapper from 'components/common/TooltipWrapper';
-import { IFilterData } from 'actions/accessRequestActions';
+import { IMenuItemProps, Menu } from 'components/menu/Menu';
+import useLookupCodeHelpers from 'hooks/useLookupCodeHelpers';
+import * as React from 'react';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import Form from 'react-bootstrap/Form';
+import Row from 'react-bootstrap/Row';
+import { FaCaretDown, FaSearch, FaUndo } from 'react-icons/fa';
+import { IAccessRequestsFilterData } from 'store/slices/accessRequests';
+import { useLookupCodes } from 'store/slices/lookupCodes';
 
 interface IProps {
-  initialValues?: IFilterData;
-  applyFilter: (filter: IFilterData) => void;
+  initialValues?: IAccessRequestsFilterData;
+  applyFilter: (filter: IAccessRequestsFilterData) => void;
 }
 
-export const defaultFilter: IFilterData = { searchText: '', role: '', agency: '' };
+export const defaultFilter: IAccessRequestsFilterData = { searchText: '', role: '', agency: '' };
 
 export const AccessRequestFilter = (props: IProps) => {
   const [filterState, setFilterState] = React.useState(props.initialValues || defaultFilter);
-  const lookupCodes = useCodeLookups();
-  const dispatch = useDispatch();
-
+  const lookupCodes = useLookupCodeHelpers();
+  const { fetchLookupCodes } = useLookupCodes();
   React.useEffect(() => {
-    dispatch(getFetchLookupCodeAction());
-  }, [dispatch]);
+    fetchLookupCodes();
+  }, [fetchLookupCodes]);
 
   const agencies: IMenuItemProps[] = lookupCodes.getByType('Agency').map(value => {
     return {

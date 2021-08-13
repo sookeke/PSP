@@ -1,15 +1,16 @@
-import useActiveFeatureLayer from './useActiveFeatureLayer';
+import { waitFor } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
-import { geoJSON } from 'leaflet';
 import { useLayerQuery } from 'components/maps/leaflet/LayerPopup';
-import { wait } from '@testing-library/react';
+import { createMemoryHistory } from 'history';
+import { geoJSON } from 'leaflet';
 import { noop } from 'lodash';
-import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import React from 'react';
 import { Provider } from 'react-redux';
 import { Router } from 'react-router-dom';
-import React from 'react';
-import { createMemoryHistory } from 'history';
+import configureMockStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+
+import useActiveFeatureLayer from './useActiveFeatureLayer';
 
 const mapRef = { current: { leafletMap: {} } };
 jest.mock('leaflet');
@@ -27,7 +28,7 @@ let findOneWhereContains = jest.fn();
 
 const mockStore = configureMockStore([thunk]);
 const history = createMemoryHistory();
-const getStore = (values?: any) => mockStore(values ?? { parcel: { draftParcels: [] } });
+const getStore = (values?: any) => mockStore(values ?? { properties: { draftParcels: [] } });
 const getWrapper = (store: any) => ({ children }: any) => (
   <Provider store={store}>
     <Router history={history}>{children}</Router>
@@ -74,7 +75,7 @@ describe('useActiveFeatureLayer hook tests', () => {
     );
     expect(clearLayers).toHaveBeenCalled();
     expect(findOneWhereContains).toHaveBeenCalledTimes(1);
-    await wait(() => {
+    await waitFor(() => {
       expect(geoJSON().addTo({} as any).addData).toHaveBeenCalledTimes(1);
     });
   });
@@ -95,7 +96,7 @@ describe('useActiveFeatureLayer hook tests', () => {
     );
     expect(clearLayers).toHaveBeenCalled();
     expect(findOneWhereContains).toHaveBeenCalledTimes(1);
-    await wait(() => {
+    await waitFor(() => {
       expect(geoJSON().addTo({} as any).addData).not.toHaveBeenCalled();
     });
   });
@@ -112,13 +113,13 @@ describe('useActiveFeatureLayer hook tests', () => {
         }),
       {
         wrapper: getWrapper(
-          getStore({ parcel: { draftParcels: [{ geometry: { coordinates: [-122, 56] } }] } }),
+          getStore({ properties: { draftParcels: [{ geometry: { coordinates: [-122, 56] } }] } }),
         ),
       },
     );
     expect(clearLayers).toHaveBeenCalled();
     expect(findOneWhereContains).toHaveBeenCalledTimes(1);
-    await wait(() => {
+    await waitFor(() => {
       expect(geoJSON().addTo({} as any).addData).toHaveBeenCalledTimes(1);
     });
   });
@@ -135,13 +136,13 @@ describe('useActiveFeatureLayer hook tests', () => {
         }),
       {
         wrapper: getWrapper(
-          getStore({ parcel: { draftParcels: [{ geometry: { coordinates: [-122, 56] } }] } }),
+          getStore({ properties: { draftParcels: [{ geometry: { coordinates: [-122, 56] } }] } }),
         ),
       },
     );
     expect(clearLayers).toHaveBeenCalled();
     expect(findOneWhereContains).toHaveBeenCalledTimes(1);
-    await wait(() => {
+    await waitFor(() => {
       expect(geoJSON().addTo({} as any).addData).not.toHaveBeenCalled();
     });
   });

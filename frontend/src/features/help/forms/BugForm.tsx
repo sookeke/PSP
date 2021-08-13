@@ -1,9 +1,9 @@
-import * as React from 'react';
-import { Formik } from 'formik';
-import { Form } from 'react-bootstrap';
 import { Input, TextArea } from 'components/common/form';
+import { Formik } from 'formik';
 import { noop } from 'lodash';
-import { pimsSupportEmail } from '../constants/HelpText';
+import * as React from 'react';
+import Form from 'react-bootstrap/Form';
+
 import { IHelpForm } from '../interfaces';
 
 interface BugFormProps {
@@ -38,8 +38,10 @@ const BugForm: React.FunctionComponent<BugFormProps> = ({ formValues, setMailto 
       onSubmit={noop}
       validateOnMount={true}
       validate={(values: any) => {
-        const body = `Steps to Reproduce: ${values.stepsToReproduce} Excepted Result: ${values.expectedResult} Actual Result: ${values.actualResult}`;
-        const mailto = `mailto:${pimsSupportEmail}?subject=Bug Report - ${formValues.page}&body=${body}`;
+        const mailto = {
+          subject: `Bug Report - ${formValues.page}`,
+          body: `Steps to Reproduce: ${values.stepsToReproduce} Excepted Result: ${values.expectedResult} Actual Result: ${values.actualResult}`,
+        };
         setMailto(mailto);
       }}
     >

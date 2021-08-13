@@ -1,7 +1,6 @@
 using MapsterMapper;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Pims.Api.Policies;
 using Pims.Dal.Security;
 using Pims.Dal.Services.Admin;
@@ -25,7 +24,6 @@ namespace Pims.Api.Areas.Admin.Controllers
     public class UserController : ControllerBase
     {
         #region Variables
-        private readonly ILogger<UserController> _logger;
         private readonly IPimsAdminService _pimsAdminService;
         private readonly IMapper _mapper;
         #endregion
@@ -34,12 +32,10 @@ namespace Pims.Api.Areas.Admin.Controllers
         /// <summary>
         /// Creates a new instance of a UserController class.
         /// </summary>
-        /// <param name="logger"></param>
         /// <param name="pimsAdminService"></param>
         /// <param name="mapper"></param>
-        public UserController(ILogger<UserController> logger, IPimsAdminService pimsAdminService, IMapper mapper)
+        public UserController(IPimsAdminService pimsAdminService, IMapper mapper)
         {
-            _logger = logger;
             _pimsAdminService = pimsAdminService;
             _mapper = mapper;
         }
@@ -99,14 +95,31 @@ namespace Pims.Api.Areas.Admin.Controllers
         /// </summary>
         /// <param name="id">The unique 'id' for the user to return.</param>
         /// <returns>The user requested.</returns>
-        [HttpGet("{id}")]
+        [HttpGet("{id:long}")]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Model.UserModel), 200)]
         [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
         [SwaggerOperation(Tags = new[] { "admin-user" })]
-        public IActionResult GetUser(Guid id)
+        public IActionResult GetUser(long id)
         {
             var entity = _pimsAdminService.User.Get(id);
+            var user = _mapper.Map<Model.UserModel>(entity);
+            return new JsonResult(user);
+        }
+
+        /// <summary>
+        /// GET - Returns a user for the specified 'key' from the datasource.
+        /// </summary>
+        /// <param name="key">The unique 'key' for the user to return.</param>
+        /// <returns>The user requested.</returns>
+        [HttpGet("{key}")]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Model.UserModel), 200)]
+        [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
+        [SwaggerOperation(Tags = new[] { "admin-user" })]
+        public IActionResult GetUser(Guid key)
+        {
+            var entity = _pimsAdminService.User.Get(key);
             var user = _mapper.Map<Model.UserModel>(entity);
             return new JsonResult(user);
         }
@@ -128,22 +141,22 @@ namespace Pims.Api.Areas.Admin.Controllers
 
             var user = _mapper.Map<Model.UserModel>(entity);
 
-            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+            return CreatedAtAction(nameof(GetUser), new { key = user.Key }, user);
         }
 
         /// <summary>
         /// PUT - Update the user in the datasource.
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="key"></param>
         /// <param name="model">The user model.</param>
         /// <returns>The user updated.</returns>
-        [HttpPut("{id}")]
+        [HttpPut("{key}")]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Model.UserModel), 200)]
         [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
         [SwaggerOperation(Tags = new[] { "admin-user" })]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Parameter 'id' is required for route.")]
-        public IActionResult UpdateUser(Guid id, [FromBody] Model.UserModel model)
+        public IActionResult UpdateUser(Guid key, [FromBody] Model.UserModel model)
         {
             var entity = _mapper.Map<Entity.User>(model);
             _pimsAdminService.User.Update(entity);
@@ -155,16 +168,16 @@ namespace Pims.Api.Areas.Admin.Controllers
         /// <summary>
         /// DELETE - Delete the user from the datasource.
         /// </summary>
-        /// <param name="id"></param>
+        /// <param name="key"></param>
         /// <param name="model">The user model.</param>
         /// <returns>The user who was deleted.</returns>
-        [HttpDelete("{id}")]
+        [HttpDelete("{key}")]
         [Produces("application/json")]
         [ProducesResponseType(typeof(Model.UserModel), 200)]
         [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
         [SwaggerOperation(Tags = new[] { "admin-user" })]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Parameter 'id' is required for route.")]
-        public IActionResult DeleteUser(Guid id, [FromBody] Model.UserModel model)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Parameter 'key' is required for route.")]
+        public IActionResult DeleteUser(Guid key, [FromBody] Model.UserModel model)
         {
             var entity = _mapper.Map<Entity.User>(model);
             _pimsAdminService.User.Remove(entity);

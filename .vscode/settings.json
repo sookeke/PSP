@@ -41,5 +41,11 @@
       "username": "sa"
     }
   ],
-  "cSpell.words": ["pims"]
+  "cSpell.words": [
+    "Ches",
+    "Serilog",
+    "Xunit",
+    "keycloak",
+    "pims"
+  ]
 }

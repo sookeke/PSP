@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Options;
 using Pims.Core.Extensions;
 using Pims.Dal.Configuration;
 using Pims.Dal.Entities;
+using Pims.Dal.Extensions;
 using Pims.Dal.Helpers.Migrations;
-using System;
 using System.Linq;
 using System.Text.Json;
 
@@ -27,7 +28,7 @@ namespace Pims.Dal
         public DbSet<Agency> Agencies { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
-        public DbSet<Pims.Dal.Entities.Claim> Claims { get; set; }
+        public DbSet<Claim> Claims { get; set; }
 
         #region Properties
         public DbSet<Address> Addresses { get; set; }
@@ -49,30 +50,20 @@ namespace Pims.Dal
         #endregion
 
         #region Projects
-        public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectNumber> ProjectNumbers { get; set; }
-        public DbSet<ProjectSnapshot> ProjectSnapshots { get; set; }
 
-        public DbSet<ProjectReport> ProjectReports { get; set; }
-        public DbSet<ProjectStatus> ProjectStatus { get; set; }
-        public DbSet<ProjectRisk> ProjectRisks { get; set; }
-        public DbSet<ProjectProperty> ProjectProperties { get; set; }
-        public DbSet<ProjectNote> ProjectNotes { get; set; }
-        public DbSet<ProjectTask> ProjectTasks { get; set; }
-        public DbSet<TierLevel> TierLevels { get; set; }
-        public DbSet<Task> Tasks { get; set; }
-        public DbSet<Workflow> Workflows { get; set; }
-        public DbSet<WorkflowProjectStatus> WorkflowProjectStatus { get; set; }
         public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
-        public DbSet<ProjectStatusNotification> ProjectStatusNotifications { get; set; }
-        public DbSet<ProjectStatusTransition> ProjectStatusTransitions { get; set; }
-        public DbSet<ProjectAgencyResponse> ProjectAgencyResponses { get; set; }
+
         public DbSet<NotificationQueue> NotificationQueue { get; set; }
         #endregion
         #endregion
 
         #region Views
         public DbSet<Entities.Views.Property> Properties { get; set; }
+        #endregion
+
+        #region Configuration
+        public DbSet<Tenant> Tenants { get; set; }
         #endregion
         #endregion
 
@@ -81,10 +72,7 @@ namespace Pims.Dal
         /// Creates a new instance of a PimsContext class.
         /// </summary>
         /// <returns></returns>
-        public PimsContext()
-        {
-
-        }
+        public PimsContext() { }
 
         /// <summary>
         /// Creates a new instance of a PimsContext class.
@@ -112,6 +100,9 @@ namespace Pims.Dal
                 optionsBuilder.EnableSensitiveDataLogging();
             }
 
+            optionsBuilder.ReplaceService<IMigrationsSqlGenerator, PimsMigrationSqlGenerator>();
+            optionsBuilder.ReplaceService<IHistoryRepository, PimsHistoryRepository>();
+
             base.OnConfiguring(optionsBuilder);
         }
 
@@ -122,32 +113,6 @@ namespace Pims.Dal
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyAllConfigurations(typeof(AddressConfiguration), this);
-
-            // TODO: Find a way to move this somewhere else.
-            // modelBuilder.Properties<DateTime> ()
-            //     .Configure (m =>
-            //     {
-            //         m.HasColumnType ("DATETIME2");
-            //         if (m.Name == nameof (BaseEntity.CreatedOn))
-            //         {
-            //             m.DefaultValueSql = "GETUTCDATE()";
-            //         }
-            //     });
-
-            // foreach (var property in modelBuilder.Model.GetEntityTypes ()
-            //         .SelectMany (m => m.GetProperties ())
-            //         .Where (p => p.ClrType == typeof (DateTime)))
-            // {
-            //     if (property.ClrType == typeof (DateTime))
-            //     {
-            //         property.Relational ().ColumnType = "DATETIME2";
-
-            //         if (property.Name == nameof (BaseEntity.CreatedOn))
-            //         {
-            //             property.Relational ().DefaultValueSql = "GETUTCDATE()";
-            //         }
-            //     }
-            // }
 
             base.OnModelCreating(modelBuilder);
         }
@@ -160,24 +125,15 @@ namespace Pims.Dal
         {
             // get entries that are being Added or Updated
             var modifiedEntries = ChangeTracker.Entries()
-                    .Where(x => (x.State == EntityState.Added || x.State == EntityState.Modified));
+                    .Where(x => x.State.IsIn(EntityState.Added, EntityState.Modified, EntityState.Deleted));
 
-            var userId = _httpContextAccessor.HttpContext.User.GetUserId();
+            // Default values are provided because depending on the claim source it may or may not have these values.
+            var username = _httpContextAccessor.HttpContext.User.GetUsername() ?? "service";
+            var key = _httpContextAccessor.HttpContext.User.GetUserKey();
+            var directory = _httpContextAccessor.HttpContext.User.GetUserDirectory() ?? "";
             foreach (var entry in modifiedEntries)
             {
-                if (entry.Entity is BaseEntity entity)
-                {
-                    if (entry.State == EntityState.Added)
-                    {
-                        entity.CreatedById = userId;
-                        entity.CreatedOn = DateTime.UtcNow;
-                    }
-                    else if (entry.State != EntityState.Deleted)
-                    {
-                        entity.UpdatedById = userId;
-                        entity.UpdatedOn = DateTime.UtcNow;
-                    }
-                }
+                entry.UpdateAppAuditProperties(username, key, directory);
             }
 
             return base.SaveChanges();

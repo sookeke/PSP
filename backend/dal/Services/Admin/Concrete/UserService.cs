@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 using Pims.Core.Extensions;
 using Pims.Dal.Entities;
@@ -66,10 +65,10 @@ namespace Pims.Dal.Services.Admin
             this.User.ThrowIfNotAuthorized(Permissions.AdminUsers);
 
             var query = this.Context.Users
-                .Include(u => u.Agencies).ThenInclude(a => a.Agency)
-                .Include(u => u.Roles).ThenInclude(r => r.Role)
-                .Include(u => u.CreatedBy)
-                .Include(u => u.UpdatedBy)
+                .Include(u => u.Agencies)
+                .Include(u => u.AgenciesManyToMany).ThenInclude(a => a.Agency)
+                .Include(u => u.Roles)
+                .Include(u => u.RolesManyToMany).ThenInclude(r => r.Role)
                 .Include(u => u.ApprovedBy)
                 .AsNoTracking()
                 .Where(u => !u.IsSystem);
@@ -77,7 +76,7 @@ namespace Pims.Dal.Services.Admin
             var userAgencies = this.User.GetAgencies();
             if (userAgencies != null && User.HasPermission(Permissions.AgencyAdmin) && !User.HasPermission(Permissions.SystemAdmin))
             {
-                query = query.Where(user => user.Agencies.Any(a => userAgencies.Contains(a.AgencyId)));
+                query = query.Where(user => user.Agencies.Any(a => userAgencies.Contains(a.Id)));
             }
 
             if (filter != null)
@@ -85,7 +84,7 @@ namespace Pims.Dal.Services.Admin
                 if (filter.Page < 1) filter.Page = 1;
                 if (filter.Quantity < 1) filter.Quantity = 1;
                 if (filter.Quantity > 50) filter.Quantity = 50;
-                if (filter.Sort == null) filter.Sort = new string[] { };
+                if (filter.Sort == null) filter.Sort = Array.Empty<string>();
 
                 if (!string.IsNullOrWhiteSpace(filter.Username))
                     query = query.Where(u => EF.Functions.Like(u.Username, $"%{filter.Username}%"));
@@ -103,10 +102,10 @@ namespace Pims.Dal.Services.Admin
                     query = query.Where(u => u.IsDisabled == filter.IsDisabled);
                 if (!string.IsNullOrWhiteSpace(filter.Role))
                     query = query.Where(u => u.Roles.Any(r =>
-                        EF.Functions.Like(r.Role.Name, $"%{filter.Role}")));
+                        EF.Functions.Like(r.Name, $"%{filter.Role}")));
                 if (!string.IsNullOrWhiteSpace(filter.Agency))
                     query = query.Where(u => u.Agencies.Any(a =>
-                        EF.Functions.Like(a.Agency.Name, $"%{filter.Agency}")));
+                        EF.Functions.Like(a.Name, $"%{filter.Agency}")));
 
                 if (filter.Sort.Any())
                 {
@@ -114,8 +113,8 @@ namespace Pims.Dal.Services.Admin
                     {
                         var direction = filter.Sort[0].Split(" ")[1];
                         query = direction == "asc" ?
-                            query.OrderBy(u => u.Agencies.Any() ? u.Agencies.FirstOrDefault().Agency.Name : null)
-                            : query.OrderByDescending(u => u.Agencies.Any() ? u.Agencies.FirstOrDefault().Agency.Name : null);
+                            query.OrderBy(u => u.Agencies.Any() ? u.Agencies.FirstOrDefault().Name : null)
+                            : query.OrderByDescending(u => u.Agencies.Any() ? u.Agencies.FirstOrDefault().Name : null);
                     }
                     else
                     {
@@ -135,17 +134,37 @@ namespace Pims.Dal.Services.Admin
         /// <param name="id"></param>
         /// <exception type="KeyNotFoundException">Entity does not exist in the datasource.</exception>
         /// <returns></returns>
-        public User Get(Guid id)
+        public User Get(long id)
         {
             this.User.ThrowIfNotAuthorized(Permissions.AdminUsers);
 
             return this.Context.Users
-                .Include(u => u.Roles)
-                .ThenInclude(r => r.Role)
-                .Include(u => u.Agencies)
-                .ThenInclude(a => a.Agency)
+                .Include(u => u.RolesManyToMany)
+                .ThenInclude(u => u.Role)
+                .Include(u => u.AgenciesManyToMany)
+                .ThenInclude(u => u.Agency)
+                .ThenInclude(a => a.Parent)
                 .AsNoTracking()
                 .SingleOrDefault(u => u.Id == id) ?? throw new KeyNotFoundException();
+        }
+
+        /// <summary>
+        /// Get the user with the specified 'key'.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <exception type="KeyNotFoundException">Entity does not exist in the datasource.</exception>
+        /// <returns></returns>
+        public User Get(Guid key)
+        {
+            this.User.ThrowIfNotAuthorized(Permissions.AdminUsers);
+
+            return this.Context.Users
+                .Include(u => u.RolesManyToMany)
+                .ThenInclude(u => u.Role)
+                .Include(u => u.AgenciesManyToMany)
+                .ThenInclude(u => u.Agency)
+                .AsNoTracking()
+                .SingleOrDefault(u => u.Key == key) ?? throw new KeyNotFoundException();
         }
 
         /// <summary>
@@ -159,6 +178,8 @@ namespace Pims.Dal.Services.Admin
 
             user.Roles.ForEach(r => this.Context.Entry(r).State = EntityState.Added);
             user.Agencies.ForEach(a => this.Context.Entry(a).State = EntityState.Added);
+            user.RolesManyToMany.ForEach(r => this.Context.Entry(r).State = EntityState.Added);
+            user.AgenciesManyToMany.ForEach(a => this.Context.Entry(a).State = EntityState.Added);
 
             base.Add(user);
             this.Context.Detach(user);
@@ -175,27 +196,31 @@ namespace Pims.Dal.Services.Admin
             user.ThrowIfNull(nameof(user));
 
             var existingUser = this.Context.Users
-                .Include(u => u.Agencies)
-                .Include(u => u.Roles)
+                .Include(u => u.RolesManyToMany)
+                .ThenInclude(u => u.Role)
+                .Include(u => u.AgenciesManyToMany)
+                .ThenInclude(u => u.Agency)
                 .AsNoTracking()
                 .FirstOrDefault(u => u.Id == user.Id) ?? throw new KeyNotFoundException();
 
-            this.Context.SetOriginalRowVersion(existingUser);
-
             if (!existingUser.Agencies.Any())
             {
-                user.ApprovedById = this.User.GetUserId();
+                var key = this.User.GetUserKey();
+                var approvedBy = this.Context.Users.AsNoTracking().FirstOrDefault(u => u.Key == key) ?? throw new KeyNotFoundException($"Current user principal key:'{key}' does not exist");
+                user.ApprovedById = approvedBy.Id;
                 user.ApprovedOn = DateTime.UtcNow;
             }
 
-            var addRoles = user.Roles.Except(existingUser.Roles, new UserRoleRoleIdComparer());
+            this.Context.SetOriginalRowVersion(existingUser);
+
+            var addRoles = user.RolesManyToMany.Except(existingUser.RolesManyToMany, new UserRoleRoleIdComparer());
             addRoles.ForEach(r => this.Context.Entry(r).State = EntityState.Added);
-            var removeRoles = existingUser.Roles.Except(user.Roles, new UserRoleRoleIdComparer());
+            var removeRoles = existingUser.RolesManyToMany.Except(user.RolesManyToMany, new UserRoleRoleIdComparer());
             removeRoles.ForEach(r => this.Context.Entry(r).State = EntityState.Deleted);
 
-            var addAgencies = user.Agencies.Except(existingUser.Agencies, new UserAgencyAgencyIdComparer());
+            var addAgencies = user.AgenciesManyToMany.Except(existingUser.AgenciesManyToMany, new UserAgencyAgencyIdComparer());
             addAgencies.ForEach(a => this.Context.Entry(a).State = EntityState.Added);
-            var removeAgencies = existingUser.Agencies.Except(user.Agencies, new UserAgencyAgencyIdComparer());
+            var removeAgencies = existingUser.AgenciesManyToMany.Except(user.AgenciesManyToMany, new UserAgencyAgencyIdComparer());
             removeAgencies.ForEach(a => this.Context.Entry(a).State = EntityState.Deleted);
 
             base.Update(user);
@@ -212,11 +237,13 @@ namespace Pims.Dal.Services.Admin
             user.ThrowIfNull(nameof(user));
 
             var existingUser = this.Context.Users
-                .Include(u => u.Agencies)
-                .Include(u => u.Roles)
+                .Include(u => u.RolesManyToMany)
+                .ThenInclude(u => u.Role)
+                .Include(u => u.AgenciesManyToMany)
+                .ThenInclude(u => u.Agency)
                 .AsNoTracking()
                 .FirstOrDefault(u => u.Id == user.Id) ?? throw new KeyNotFoundException();
-
+            existingUser.RowVersion = user.RowVersion;
             this.Context.SetOriginalRowVersion(existingUser);
 
             existingUser.Roles.Clear();
@@ -239,14 +266,15 @@ namespace Pims.Dal.Services.Admin
             existingAccessRequest.Note = accessRequest.Note;
             existingAccessRequest.Status = accessRequest.Status;
             existingAccessRequest.Roles.Clear();
-            accessRequest.Roles.ForEach(r => existingAccessRequest.Roles.Add(new AccessRequestRole(existingAccessRequest.Id, r.RoleId)));
+            accessRequest.Roles.ForEach(r => existingAccessRequest.Roles.Add(r));
             existingAccessRequest.Agencies.Clear();
-            accessRequest.Agencies.ForEach(a => existingAccessRequest.Agencies.Add(new AccessRequestAgency(existingAccessRequest.Id, a.AgencyId)));
+            accessRequest.Agencies.ForEach(a => existingAccessRequest.Agencies.Add(a));
 
             if (isApproving)
             {
+                var approvedBy = this.Context.Users.FirstOrDefault(u => u.Key == this.User.GetUserKey()) ?? throw new KeyNotFoundException("Current user principal does not exist");
                 var approvedUser = this.Context.Users.Find(existingAccessRequest.UserId);
-                approvedUser.ApprovedById = this.User.GetUserId();
+                approvedUser.ApprovedById = approvedBy.Id;
                 approvedUser.ApprovedOn = DateTime.UtcNow;
                 this.Context.Users.Update(approvedUser);
             }
@@ -260,15 +288,15 @@ namespace Pims.Dal.Services.Admin
         /// Get the access request with matching id
         /// </summary>
         /// <param name="id"></param>
-        public AccessRequest GetAccessRequest(int id)
+        public AccessRequest GetAccessRequest(long id)
         {
             this.User.ThrowIfNotAuthorized(Permissions.AdminUsers);
 
             return this.Context.AccessRequests
-                .Include(p => p.Agencies)
-                .ThenInclude(p => p.Agency)
-                .Include(p => p.Roles)
-                .ThenInclude(p => p.Role)
+                .Include(p => p.AgenciesManyToMany)
+                .ThenInclude(a => a.Agency)
+                .Include(p => p.RolesManyToMany)
+                .ThenInclude(a => a.Role)
                 .Include(p => p.User)
                 .AsNoTracking()
                 .Where(ar => ar.Id == id)
@@ -285,7 +313,7 @@ namespace Pims.Dal.Services.Admin
         public Paged<AccessRequest> GetAccessRequests(int page = 1, int quantity = 10, string sort = null,
             AccessRequestStatus status = AccessRequestStatus.OnHold)
         {
-            var sortArray = !string.IsNullOrWhiteSpace(sort) ? new[] { sort } : new string[0];
+            var sortArray = !string.IsNullOrWhiteSpace(sort) ? new[] { sort } : Array.Empty<string>();
             var filter = new AccessRequestFilter(page, quantity, sortArray, null, null, null, status);
             return GetAccessRequests(filter);
         }
@@ -299,28 +327,28 @@ namespace Pims.Dal.Services.Admin
             this.User.ThrowIfNotAuthorized(Permissions.AdminUsers);
 
             var query = this.Context.AccessRequests
-                .Include(p => p.Agencies)
-                .ThenInclude(p => p.Agency)
-                .Include(p => p.Roles)
-                .ThenInclude(p => p.Role)
+                .Include(p => p.AgenciesManyToMany)
+                .ThenInclude(a => a.Agency)
+                .Include(p => p.RolesManyToMany)
+                .ThenInclude(a => a.Role)
                 .Include(p => p.User)
                 .AsNoTracking();
 
             var userAgencies = this.User.GetAgencies();
             if (userAgencies != null && User.HasPermission(Permissions.AgencyAdmin) && !User.HasPermission(Permissions.SystemAdmin))
             {
-                query = query.Where(accessRequest => accessRequest.Agencies.Any(a => userAgencies.Contains(a.AgencyId)));
+                query = query.Where(accessRequest => accessRequest.Agencies.Any(a => userAgencies.Contains(a.Id)));
             }
 
             query = query.Where(request => request.Status == filter.Status);
 
             if (!string.IsNullOrWhiteSpace(filter.Role))
                 query = query.Where(ar => ar.Roles.Any(r =>
-                    EF.Functions.Like(r.Role.Name, $"%{filter.Role}%")));
+                    EF.Functions.Like(r.Name, $"%{filter.Role}%")));
 
             if (!string.IsNullOrWhiteSpace(filter.Agency))
                 query = query.Where(ar => ar.Agencies.Any(a =>
-                    EF.Functions.Like(a.Agency.Name, $"%{filter.Agency}%")));
+                    EF.Functions.Like(a.Name, $"%{filter.Agency}%")));
 
             if (!string.IsNullOrWhiteSpace(filter.SearchText))
             {

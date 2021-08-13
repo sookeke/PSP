@@ -1,26 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { Navbar, Container, Row, ButtonToolbar, Button } from 'react-bootstrap';
-import { Check, Form, Input, Select, SelectOption } from '../../../components/common/form';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
-import { IAgencyDetail } from 'interfaces';
-import { Formik } from 'formik';
-import * as API from 'constants/API';
 import './EditAgencyPage.scss';
-import { useHistory } from 'react-router-dom';
-import useCodeLookups from 'hooks/useLookupCodes';
-import { ILookupCode } from 'actions/lookupActions';
-import {
-  createAgency,
-  deleteAgency,
-  fetchAgencyDetail,
-  getUpdateAgencyAction,
-} from 'actionCreators/agencyActionCreator';
-import { FaArrowAltCircleLeft } from 'react-icons/fa';
+
 import GenericModal from 'components/common/GenericModal';
-import { AgencyEditSchema } from 'utils/YupSchema';
-import service from 'features/properties/service';
 import TooltipWrapper from 'components/common/TooltipWrapper';
+import * as API from 'constants/API';
+import service from 'features/properties/service';
+import { Formik } from 'formik';
+import useLookupCodeHelpers from 'hooks/useLookupCodeHelpers';
+import { IAgencyDetail } from 'interfaces';
+import React, { useEffect, useState } from 'react';
+import Button from 'react-bootstrap/Button';
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import Container from 'react-bootstrap/Container';
+import Navbar from 'react-bootstrap/Navbar';
+import Row from 'react-bootstrap/Row';
+import { FaArrowAltCircleLeft } from 'react-icons/fa';
+import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
+import { useAppSelector } from 'store/hooks';
+import { useAgencies } from 'store/slices/agencies/useAgencies';
+import { ILookupCode } from 'store/slices/lookupCodes';
+import { AgencyEditSchema } from 'utils/YupSchema';
+
+import { Check, Form, Input, Select, SelectOption } from '../../../components/common/form';
 
 interface IEditAgencyPageProps {
   /** id prop to identify which agency to edit */
@@ -36,18 +37,17 @@ const EditAgencyPage = (props: IEditAgencyPageProps) => {
   const newAgency = history.location.pathname.includes('/new');
   const [showDelete, setShowDelete] = useState(false);
   const [showFailed, setShowFailed] = useState(false);
+  const { fetchAgencyDetail, addAgency, updateAgency } = useAgencies();
   useEffect(() => {
     if (!newAgency) {
-      dispatch(fetchAgencyDetail({ id: agencyId }));
+      fetchAgencyDetail(agencyId);
     }
-  }, [dispatch, agencyId, newAgency]);
+  }, [fetchAgencyDetail, agencyId, newAgency]);
 
-  const { getByType } = useCodeLookups();
+  const { getByType } = useLookupCodeHelpers();
   const agencies = getByType(API.AGENCY_CODE_SET_NAME).filter(x => !x.parentId);
 
-  const agency = useSelector<RootState, IAgencyDetail>(
-    state => state.GET_AGENCY_DETAIL as IAgencyDetail,
-  );
+  const agency = useAppSelector(state => state.agencies.agencyDetail);
   const mapLookupCode = (code: ILookupCode): SelectOption => ({
     label: code.name,
     value: code.id.toString(),
@@ -104,28 +104,24 @@ const EditAgencyPage = (props: IEditAgencyPageProps) => {
             enableReinitialize
             initialValues={newAgency ? newValues : initialValues}
             validationSchema={AgencyEditSchema}
-            onSubmit={async (values, { setSubmitting, setStatus }) => {
+            onSubmit={async (values, { setSubmitting, setStatus, setValues }) => {
               try {
                 if (!newAgency) {
-                  dispatch(
-                    getUpdateAgencyAction(
-                      { id: agencyId },
-                      {
-                        id: agency.id,
-                        name: values.name,
-                        code: values.code,
-                        email: values.email,
-                        isDisabled: values.isDisabled,
-                        sendEmail: values.sendEmail,
-                        addressTo: values.addressTo,
-                        parentId: values.parentId ? Number(values.parentId) : undefined,
-                        description: values.description,
-                        rowVersion: values.rowVersion,
-                      },
-                    ),
-                  );
+                  const data = await updateAgency({
+                    id: agency.id,
+                    name: values.name,
+                    code: values.code,
+                    email: values.email,
+                    isDisabled: values.isDisabled,
+                    sendEmail: values.sendEmail,
+                    addressTo: values.addressTo,
+                    parentId: values.parentId ? Number(values.parentId) : undefined,
+                    description: values.description,
+                    rowVersion: values.rowVersion,
+                  });
+                  setValues(data);
                 } else {
-                  const data = await createAgency({
+                  const data = await addAgency({
                     name: values.name,
                     code: values.code,
                     email: values.email,
@@ -134,7 +130,8 @@ const EditAgencyPage = (props: IEditAgencyPageProps) => {
                     addressTo: values.addressTo,
                     parentId: Number(values.parentId),
                     description: values.description,
-                  })(dispatch);
+                  });
+                  setValues(data);
                   history.replace(`/admin/agency/${data.id}`);
                 }
               } catch (error) {
@@ -220,22 +217,25 @@ const EditAgencyPage = (props: IEditAgencyPageProps) => {
 
 export default EditAgencyPage;
 
-const DeleteModal = ({ showDelete, setShowDelete, history, dispatch, agency }: any) => (
-  <GenericModal
-    message="Are you sure you want to permanently delete the agency?"
-    cancelButtonText="Cancel"
-    okButtonText="Delete"
-    display={showDelete}
-    handleOk={() => {
-      dispatch(deleteAgency(agency)).then(() => {
-        history.push('/admin/agencies');
-      });
-    }}
-    handleCancel={() => {
-      setShowDelete(false);
-    }}
-  />
-);
+const DeleteModal = ({ showDelete, setShowDelete, history, dispatch, agency }: any) => {
+  const { removeAgency } = useAgencies();
+  return (
+    <GenericModal
+      message="Are you sure you want to permanently delete the agency?"
+      cancelButtonText="Cancel"
+      okButtonText="Delete"
+      display={showDelete}
+      handleOk={() => {
+        removeAgency(agency).then(() => {
+          history.push('/admin/agencies');
+        });
+      }}
+      handleCancel={() => {
+        setShowDelete(false);
+      }}
+    />
+  );
+};
 
 const FailedDeleteModal = ({ showFailed, setShowFailed }: any) => (
   <GenericModal

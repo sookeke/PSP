@@ -1,19 +1,19 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Moq;
+using Pims.Ches;
+using Pims.Ches.Configuration;
 using Pims.Core.Http;
 using Pims.Core.Test;
-using Moq;
 using System.Diagnostics.CodeAnalysis;
-using Xunit;
-using Microsoft.Extensions.Options;
-using Pims.Ches.Configuration;
-using Pims.Ches;
-using System.Net.Http;
-using Microsoft.Extensions.Configuration;
-using System.Text.Json;
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.Extensions.Logging;
 using System.IO;
+using System.Net.Http;
 using System.Text;
+using System.Text.Json;
+using Xunit;
 
 namespace Pims.Dal.Test.Libraries.Ches
 {
@@ -26,7 +26,7 @@ namespace Pims.Dal.Test.Libraries.Ches
         public IConfiguration Configuration { get; }
 
         #region Tests
-        #region ChesServiceCollection 
+        #region ChesServiceCollection
         [Fact]
         public void ChesServiceCollection_Success()
         {
@@ -48,15 +48,17 @@ namespace Pims.Dal.Test.Libraries.Ches
             {
                 builder.AddJsonStream(io);
                 chesConfig = builder.Build();
-            }            
+            }
 
             var mockClientFactory = new Mock<IHttpClientFactory>();
             var mockIOptionsMonitor = new Mock<IOptionsMonitor<JsonSerializerOptions>>();
             var mockIlogger = new Mock<ILogger<HttpRequestClient>>();
+            var mockIChesService = new Mock<ILogger<IChesService>>();
 
             helper.AddSingleton(mockClientFactory.Object);
             helper.AddSingleton(mockIOptionsMonitor.Object);
             helper.AddSingleton(mockIlogger.Object);
+            helper.AddSingleton(mockIChesService.Object);
 
             // Act
             _ = helper.Services.AddChesService(section: chesConfig.GetSection("Ches"));
@@ -65,7 +67,6 @@ namespace Pims.Dal.Test.Libraries.Ches
             var chesService = helper.GetService<IChesService>();
             var httpRequestClient = helper.GetService<IHttpRequestClient>();
             var jwtSecurityTokenHandler = helper.GetService<JwtSecurityTokenHandler>();
-            
 
             // Assert
             Assert.NotNull(chesService);

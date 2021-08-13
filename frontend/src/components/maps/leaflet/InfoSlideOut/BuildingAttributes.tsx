@@ -1,9 +1,12 @@
-import * as React from 'react';
-import { ListGroup } from 'react-bootstrap';
-import { IBuilding } from 'actions/parcelsActions';
-import { Label } from 'components/common/Label';
 import './InfoSlideOut.scss';
+
+import { Label } from 'components/common/Label';
+import { getIn } from 'formik';
+import { IBuilding } from 'interfaces';
+import * as React from 'react';
+import ListGroup from 'react-bootstrap/ListGroup';
 import { formatMoney } from 'utils/numberFormatUtils';
+
 import { compareDate, OuterRow } from './InfoContent';
 import { ThreeColumnItem } from './ThreeColumnItem';
 
@@ -27,9 +30,10 @@ export const BuildingAttributes: React.FC<IBuildingAttributes> = ({
   if (buildingInfo?.assessedBuilding) {
     formatAssessed = formatMoney(buildingInfo?.assessedBuilding);
   } else if (buildingInfo?.evaluations?.length >= 1) {
-    formatAssessed = formatMoney(
-      buildingInfo?.evaluations.sort((a, b) => compareDate(a.date, b.date)).reverse()[0].value,
-    );
+    const sortedEvaluations = [...buildingInfo?.evaluations]
+      .sort((a, b) => compareDate(a?.date, b?.date))
+      .reverse();
+    formatAssessed = formatMoney(getIn(sortedEvaluations, '0')?.value);
   } else {
     formatAssessed = '';
   }

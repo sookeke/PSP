@@ -1,8 +1,10 @@
-import * as React from 'react';
-import { TicketTypes, helpTickets } from '../constants/HelpText';
-import { Form } from 'react-bootstrap';
-import styled from 'styled-components';
 import './HelpSubmitBox.scss';
+
+import * as React from 'react';
+import Form from 'react-bootstrap/Form';
+import styled from 'styled-components';
+
+import { helpTickets, TicketTypes } from '../constants/HelpText';
 
 interface IHelpSubmitBoxProps {
   /** the keycloak user display name */
@@ -18,10 +20,6 @@ interface IHelpSubmitBoxProps {
   /** set the mailto of the parent based on the ticket form content. */
   setMailto: Function;
 }
-
-const FormPicker = styled.div`
-  display: flex;
-`;
 
 /**
  * A component that displays a list of Help Ticket types as well as a form corresponding to the active Help Ticket type
@@ -57,5 +55,9 @@ const HelpSubmitBox: React.FunctionComponent<IHelpSubmitBoxProps> = ({
     </FormPicker>
   );
 };
+
+const FormPicker = styled.div`
+  display: flex;
+`;
 
 export default HelpSubmitBox;

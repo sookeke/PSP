@@ -1,19 +1,21 @@
+import { renderHook } from '@testing-library/react-hooks';
+import { Classifications } from 'constants/classifications';
+import { createMemoryHistory } from 'history';
+import queryString from 'query-string';
 import React from 'react';
 import { Provider } from 'react-redux';
 import { Router } from 'react-router-dom';
-import { createMemoryHistory } from 'history';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import * as reducerTypes from 'constants/reducerTypes';
+import filterSlice from 'store/slices/filter/filterSlice';
+
 import { useRouterFilter } from './useRouterFilter';
-import { renderHook } from '@testing-library/react-hooks';
-import queryString from 'query-string';
 
 const mockStore = configureMockStore([thunk]);
 const history = createMemoryHistory();
 const getStore = (filter: any) =>
   mockStore({
-    [reducerTypes.FILTER]: filter,
+    [filterSlice.name]: filter,
   });
 
 const getWrapper = (store: any) => ({ children }: any) => (
@@ -27,7 +29,6 @@ const emptyFilter = {
   pid: '',
   address: '',
   administrativeArea: '',
-  projectNumber: '',
   agencies: '',
   classificationId: '',
   minLotSize: '',
@@ -46,9 +47,8 @@ const defaultFilter = {
   pid: '1',
   address: '2',
   administrativeArea: '3',
-  projectNumber: '4',
   agencies: '5',
-  classificationId: '6',
+  classificationId: `${Classifications.Subdivided}`,
   minLotSize: '7',
   maxLotSize: '8',
   parcelId: '9',

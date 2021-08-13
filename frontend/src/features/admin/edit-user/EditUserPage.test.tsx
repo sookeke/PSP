@@ -1,53 +1,65 @@
-import EditUserPage from './EditUserPage';
-import React from 'react';
+import { useKeycloak } from '@react-keycloak/web';
+import { act, cleanup, render } from '@testing-library/react';
+import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
+import * as API from 'constants/API';
+import { createMemoryHistory } from 'history';
+import moment from 'moment-timezone';
+import { Provider } from 'react-redux';
+import { Router } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { ILookupCode } from 'actions/lookupActions';
-import * as API from 'constants/API';
-import { Provider } from 'react-redux';
-import * as reducerTypes from 'constants/reducerTypes';
-import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
-import { render, cleanup, act } from '@testing-library/react';
-import MockAdapter from 'axios-mock-adapter';
-import axios from 'axios';
-import { ToastContainer } from 'react-toastify';
-import moment from 'moment-timezone';
+import { ILookupCode, lookupCodesSlice } from 'store/slices/lookupCodes';
+import { usersSlice } from 'store/slices/users';
+
+import EditUserPage from './EditUserPage';
+
+jest.mock('@react-keycloak/web');
+(useKeycloak as jest.Mock).mockReturnValue({
+  keycloak: {
+    userInfo: {
+      agencies: [1],
+      roles: [],
+    },
+    subject: 'test',
+  },
+});
 
 const mockStore = configureMockStore([thunk]);
 const history = createMemoryHistory();
 
 const lCodes = {
   lookupCodes: [
-    { name: 'agencyVal', id: '1', isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
-    { name: 'disabledAgency', id: '2', isDisabled: true, type: API.AGENCY_CODE_SET_NAME },
-    { name: 'roleVal', id: '1', isDisabled: false, type: API.ROLE_CODE_SET_NAME },
-    { name: 'disabledRole', id: '2', isDisabled: true, type: API.ROLE_CODE_SET_NAME },
+    { name: 'agencyVal', id: 1, isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
+    { name: 'disabledAgency', id: 2, isDisabled: true, type: API.AGENCY_CODE_SET_NAME },
+    { name: 'roleVal', id: 1, isDisabled: false, type: API.ROLE_CODE_SET_NAME },
+    { name: 'disabledRole', id: 2, isDisabled: true, type: API.ROLE_CODE_SET_NAME },
   ] as ILookupCode[],
 };
 
 const selectedUser = {
-  username: 'test.user',
-  firstName: 'Test',
+  createdOn: '2021-05-04T19:07:09.6920606',
+  displayName: 'User, Admin',
+  email: 'admin@pims.gov.bc.ca',
+  firstName: 'George',
+  id: 1,
+  key: '14c9a273-6f4a-4859-8d59-9264d3cee53f',
   lastName: 'User',
-  email: 'test@user.com',
-  isDisabled: false,
-  emailVerified: false,
-  agencies: [],
-  roles: [{ id: '2' }],
-  rowVersion: 'AAAAAAAAB9E=',
-  note: 'test note',
+  position: '',
+  rowVersion: 1,
+  username: 'admin',
   lastLogin: '2020-10-14T17:45:39.7381599',
 };
 
 const store = mockStore({
-  [reducerTypes.GET_USER_DETAIL]: selectedUser,
-  [reducerTypes.LOOKUP_CODE]: lCodes,
+  [usersSlice.name]: { userDetail: selectedUser },
+  [lookupCodesSlice.name]: lCodes,
 });
 
 const noDateStore = mockStore({
-  [reducerTypes.GET_USER_DETAIL]: { ...selectedUser, lastLogin: null },
-  [reducerTypes.LOOKUP_CODE]: lCodes,
+  [usersSlice.name]: { userDetail: { ...selectedUser, lastLogin: null } },
+  [lookupCodesSlice.name]: lCodes,
 });
 
 const mockAxios = new MockAdapter(axios);
@@ -56,7 +68,7 @@ const testRender = () =>
   render(
     <Provider store={store}>
       <Router history={history}>
-        <EditUserPage id="TEST-ID" />,
+        <EditUserPage userKey="TEST-ID" />,
       </Router>
     </Provider>,
   );
@@ -73,7 +85,7 @@ const renderEditUserPage = () =>
           rtl={false}
           pauseOnFocusLoss={false}
         />
-        <EditUserPage id="TEST-ID" />,
+        <EditUserPage userKey="TEST-ID" />,
       </Router>
     </Provider>,
   );
@@ -90,7 +102,7 @@ describe('Edit user page', () => {
     const { container } = render(
       <Provider store={noDateStore}>
         <Router history={history}>
-          <EditUserPage id="TEST-ID" />,
+          <EditUserPage userKey="TEST-ID" />,
         </Router>
       </Provider>,
     );
@@ -128,9 +140,9 @@ describe('Edit user page', () => {
   describe('appropriate fields are autofilled', () => {
     it('autofills  email, username, first and last name', () => {
       const { getByTestId } = renderEditUserPage();
-      expect(getByTestId('email').getAttribute('value')).toEqual('test@user.com');
-      expect(getByTestId('username').getAttribute('value')).toEqual('test.user');
-      expect(getByTestId('firstName').getAttribute('value')).toEqual('Test');
+      expect(getByTestId('email').getAttribute('value')).toEqual('admin@pims.gov.bc.ca');
+      expect(getByTestId('username').getAttribute('value')).toEqual('admin');
+      expect(getByTestId('firstName').getAttribute('value')).toEqual('George');
       expect(getByTestId('lastName').getAttribute('value')).toEqual('User');
       expect(getByTestId('lastName').getAttribute('value')).toEqual('User');
     });

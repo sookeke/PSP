@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Spinner } from 'react-bootstrap';
+import Spinner from 'react-bootstrap/Spinner';
 import styled from 'styled-components';
 
 export interface FilterBackdropProps {
@@ -23,7 +23,7 @@ const Backdrop = styled.div`
 const FilterBackdrop: React.FC<FilterBackdropProps> = ({ show }) => {
   return show ? (
     <Backdrop>
-      <Spinner animation="border" variant="warning" />
+      <Spinner animation="border" variant="warning" data-testid="filter-backdrop-loading" />
     </Backdrop>
   ) : null;
 };

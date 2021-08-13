@@ -1,92 +1,232 @@
-import * as React from 'react';
 import 'leaflet';
-import { Map as LeafletMap } from 'leaflet';
-import { Map as ReactLeafletMap, MapProps } from 'react-leaflet';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme, { mount } from 'enzyme';
-import InfoSlideOut from './InfoSlideOut';
 import 'leaflet/dist/leaflet.css';
-import { waitFor } from '@testing-library/dom';
-import { Button } from 'react-bootstrap';
-import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
-import thunk from 'redux-thunk';
-import configureMockStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
 
-Enzyme.configure({ adapter: new Adapter() });
-const history = createMemoryHistory();
-const mockStore = configureMockStore([thunk]);
-const store = mockStore({});
+import userEvent from '@testing-library/user-event';
+import {
+  IPopUpContext,
+  PropertyPopUpContextProvider,
+} from 'components/maps/providers/PropertyPopUpProvider';
+import { Claims, PropertyTypes } from 'constants/index';
+import { PimsAPI, useApi } from 'hooks/useApi';
+import noop from 'lodash/noop';
+import { mockBuildingWithAssociatedLand, mockParcel } from 'mocks/filterDataMock';
+import React, { useState } from 'react';
+import {
+  cleanup,
+  createMapContainer,
+  deferred,
+  render,
+  RenderOptions,
+  waitFor,
+  within,
+} from 'utils/test-utils';
 
-let mapRef: React.RefObject<ReactLeafletMap<MapProps, LeafletMap>> | undefined;
+import InfoSlideOut from './InfoSlideOut';
 
-const MapComponent = () => {
-  const [open, setOpen] = React.useState(false);
-  mapRef = React.useRef<any>();
-  return (
-    <Provider store={store}>
-      <Router history={history}>
-        <div id="mapid" style={{ width: 500, height: 500 }}>
-          <ReactLeafletMap ref={mapRef} center={[48.423078, -123.360956]} zoom={18}>
-            <InfoSlideOut open={open} setOpen={() => setOpen(!open)} />
-          </ReactLeafletMap>
-        </div>
-      </Router>
-    </Provider>
+jest.mock('@react-keycloak/web');
+
+// This mocks the parcels of land a user can see - should be able to see 2 markers
+jest.mock('hooks/useApi');
+((useApi as unknown) as jest.Mock<Partial<PimsAPI>>).mockReturnValue({
+  getParcel: async () => {
+    return mockParcel;
+  },
+  getBuilding: async () => {
+    return mockBuildingWithAssociatedLand;
+  },
+});
+
+// component under test
+function Template({ openByDefault = false }) {
+  const [open, setOpen] = useState(openByDefault);
+  return <InfoSlideOut open={open} setOpen={() => setOpen(!open)} />;
+}
+
+function createParcelContext(): Partial<IPopUpContext> {
+  return { propertyTypeId: PropertyTypes.Parcel, propertyInfo: { id: 1 } as any };
+}
+
+function createBuildingContext(): Partial<IPopUpContext> {
+  return { propertyTypeId: PropertyTypes.Building, propertyInfo: { id: 1 } as any };
+}
+
+function setup(
+  context: Partial<IPopUpContext>,
+  ui = <Template />,
+  renderOptions: RenderOptions = { useMockAuthentication: true },
+  setMap = noop,
+) {
+  // create a promise to wait for the map to be ready (which happens after initial render)
+  const { promise, resolve } = deferred();
+  const MapContainer = createMapContainer(resolve, setMap);
+
+  const uiToRender = (
+    <PropertyPopUpContextProvider values={context}>
+      <MapContainer>{ui}</MapContainer>
+    </PropertyPopUpContextProvider>
   );
-};
+
+  const component = render(uiToRender, renderOptions);
+  return {
+    component,
+    ready: promise,
+    findContainer: () => document.querySelector('#infoContainer') as HTMLElement,
+    findToggleButton: () => document.querySelector('#slideOutInfoButton') as HTMLElement,
+  };
+}
 
 describe('InfoSlideOut View', () => {
-  beforeEach(() => {
-    mapRef = undefined;
+  afterEach(() => {
+    jest.clearAllMocks();
+    cleanup();
   });
 
-  it('Should render the slide out button', () => {
-    const component = mount(<MapComponent />);
-    waitFor(() => expect(mapRef?.current).toBeTruthy(), { timeout: 500 });
-    const infoButton = component.find(Button).first();
-    expect(infoButton).toBeDefined();
-    expect(infoButton.props().id).toBe('slideOutInfoButton');
+  it('renders correctly', () => {
+    const context = createParcelContext();
+    const { component } = setup(context);
+    expect(component.asFragment()).toMatchSnapshot();
   });
 
-  it('Component should be closed by default', () => {
-    const component = mount(<MapComponent />);
-    waitFor(() => expect(mapRef?.current).toBeTruthy(), { timeout: 500 });
-    const infoContainer = component.find('#infoContainer').first();
-    expect(infoContainer).toBeDefined();
-    expect(infoContainer.props().className?.includes('closed')).toBeTruthy();
+  it('should render the slide out button', async () => {
+    const context = createParcelContext();
+    const { ready, findToggleButton } = setup(context);
+    await waitFor(() => ready);
+    const toggleBtn = findToggleButton();
+    expect(toggleBtn).toBeInTheDocument();
   });
 
-  it('Clicking the button should open the info component', () => {
-    const component = mount(<MapComponent />);
-    waitFor(() => expect(mapRef?.current).toBeTruthy(), { timeout: 500 });
-    const infoContainer = component.find('#infoContainer').first();
-    const infoButton = component.find('#slideOutInfoButton').first();
-    expect(infoContainer).toBeDefined();
-    expect(infoButton).toBeDefined();
-    expect(infoContainer.props().className?.includes('closed')).toBeTruthy();
-    infoButton.invoke('onClick');
-    waitFor(() => expect(infoContainer.props().className?.includes('closed')).toBeFalsy(), {
-      timeout: 500,
-    });
+  it('should be closed by default', async () => {
+    const context = createParcelContext();
+    const { ready, findContainer } = setup(context);
+    await waitFor(() => ready);
+    const slideOut = findContainer();
+    expect(slideOut).toBeInTheDocument();
+    expect(slideOut.className).toContain('closed');
   });
 
-  it('Clicking the button should close the info component', () => {
-    const component = mount(<MapComponent />);
-    waitFor(() => expect(mapRef?.current).toBeTruthy(), { timeout: 500 });
-    const infoContainer = component.find('#infoContainer').first();
-    const infoButton = component.find('#slideOutInfoButton').first();
-    expect(infoContainer).toBeDefined();
-    expect(infoButton).toBeDefined();
-    expect(infoContainer.props().className?.includes('closed')).toBeTruthy();
-    infoButton.invoke('onClick');
-    waitFor(() => expect(infoContainer.props().className?.includes('closed')).toBeFalsy(), {
-      timeout: 500,
-    });
-    infoButton.invoke('onClick');
-    waitFor(() => expect(infoContainer.props().className?.includes('closed')).toBeTruthy(), {
-      timeout: 500,
-    });
+  it('when closed, clicking the toggle button should open the PARCEL details within the info component', async () => {
+    const context = createParcelContext();
+    const { component, ready, findContainer, findToggleButton } = setup(context);
+    await waitFor(() => ready);
+    // when info component is closed...
+    const slideOut = findContainer();
+    expect(slideOut).toBeInTheDocument();
+    expect(slideOut.className).toContain('closed');
+    // clicking the button should open it...
+    const toggleBtn = findToggleButton();
+    userEvent.click(toggleBtn);
+    // wait for it to open...
+    await waitFor(() => expect(slideOut.className).not.toContain('closed'));
+    // check appropriate text has been rendered...
+    const headerLabel = component.container.querySelector('p.label.header');
+    expect(headerLabel).toHaveTextContent('icon-lot.svgParcel Identification');
+  });
+
+  it('with appropriate user permissions, opening the info component should display additional PARCEL information', async () => {
+    // user can see additional parcel information
+    const renderOptions: RenderOptions = {
+      useMockAuthentication: true,
+      roles: [Claims.ADMIN_PROPERTIES],
+      agencies: [1],
+    };
+
+    const context = createParcelContext();
+    const { component, ready, findContainer, findToggleButton } = setup(
+      context,
+      <Template />,
+      renderOptions,
+    );
+
+    await waitFor(() => ready);
+    // when info component is closed...
+    const slideOut = findContainer();
+    expect(slideOut).toBeInTheDocument();
+    expect(slideOut.className).toContain('closed');
+    // clicking the button should open it...
+    const toggleBtn = findToggleButton();
+    userEvent.click(toggleBtn);
+    // wait for it to open...
+    await waitFor(() => expect(slideOut.className).not.toContain('closed'));
+    // check appropriate text has been rendered...
+    const { container } = component;
+    const headerLabel = container.querySelector('p.label.header');
+    expect(headerLabel).toHaveTextContent('icon-lot.svgParcel Identification');
+    // additional information should be available...
+    const tabButton = container.querySelector('#slideOutTab') as HTMLElement;
+    userEvent.click(tabButton);
+    const { findByText } = within(slideOut);
+    expect(await findByText('Associated Buildings')).toBeInTheDocument();
+  });
+
+  it('when closed, clicking the toggle button should open the BUILDING details within the info component', async () => {
+    const context = createBuildingContext();
+    const { component, ready, findContainer, findToggleButton } = setup(context);
+    await waitFor(() => ready);
+    // when info component is closed...
+    const slideOut = findContainer();
+    expect(slideOut).toBeInTheDocument();
+    expect(slideOut.className).toContain('closed');
+    // clicking the button should open it...
+    const toggleBtn = findToggleButton();
+    userEvent.click(toggleBtn);
+    // wait for it to open...
+    await waitFor(() => expect(slideOut.className).not.toContain('closed'));
+    // check appropriate text has been rendered...
+    const headerLabel = component.container.querySelector('p.label.header');
+    expect(headerLabel).toHaveTextContent('icon-business.svgBuilding Identification');
+  });
+
+  it('with appropriate user permissions, opening the info component should display additional BUILDING information', async () => {
+    // user can see additional parcel information
+    const renderOptions: RenderOptions = {
+      useMockAuthentication: true,
+      roles: [Claims.ADMIN_PROPERTIES],
+      agencies: [1],
+    };
+
+    const context = createBuildingContext();
+    const { component, ready, findContainer, findToggleButton } = setup(
+      context,
+      <Template />,
+      renderOptions,
+    );
+
+    await waitFor(() => ready);
+    // when info component is closed...
+    const slideOut = findContainer();
+    expect(slideOut).toBeInTheDocument();
+    expect(slideOut.className).toContain('closed');
+    // clicking the button should open it...
+    const toggleBtn = findToggleButton();
+    userEvent.click(toggleBtn);
+    // wait for it to open...
+    await waitFor(() => expect(slideOut.className).not.toContain('closed'));
+    // check appropriate text has been rendered...
+    const { container } = component;
+    const headerLabel = container.querySelector('p.label.header');
+    expect(headerLabel).toHaveTextContent('icon-business.svgBuilding Identification');
+    // additional information should be available...
+    const tabButton = container.querySelector('#slideOutTab') as HTMLElement;
+    userEvent.click(tabButton);
+    const { findByText } = within(slideOut);
+    expect(await findByText('Associated Land')).toBeInTheDocument();
+  });
+
+  it('when open, clicking the button should close the layers list', async () => {
+    const context = createParcelContext();
+    const { ready, findContainer, findToggleButton } = setup(
+      context,
+      <Template openByDefault={true} />,
+    );
+    await waitFor(() => ready);
+    // when info component is closed...
+    const slideOut = findContainer();
+    expect(slideOut).toBeInTheDocument();
+    expect(slideOut.className).not.toContain('closed');
+    // clicking the button should open it...
+    const toggleBtn = findToggleButton();
+    userEvent.click(toggleBtn);
+    // wait for it to open...
+    await waitFor(() => expect(slideOut.className).toContain('closed'));
   });
 });

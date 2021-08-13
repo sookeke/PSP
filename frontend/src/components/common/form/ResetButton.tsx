@@ -1,6 +1,7 @@
 import React from 'react';
-import TooltipWrapper from '../TooltipWrapper';
 import { FaUndo } from 'react-icons/fa';
+
+import TooltipWrapper from '../TooltipWrapper';
 import { Button, ButtonProps } from '.';
 
 /**
@@ -11,6 +12,7 @@ const ResetButton: React.FC<ButtonProps> = ({ ...props }) => {
   return (
     <TooltipWrapper toolTipId="map-filter-reset-tooltip" toolTip="Reset Filter">
       <Button
+        data-testid="reset-button"
         id="reset-button"
         type="reset"
         variant="info"

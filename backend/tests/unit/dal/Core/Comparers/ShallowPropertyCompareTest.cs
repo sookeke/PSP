@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Pims.Core.Comparers;
 using Pims.Core.Test;
 using System.Diagnostics.CodeAnalysis;
@@ -13,6 +14,7 @@ namespace Pims.Api.Test.Helpers
     public class ShallowPropertyCompareTest
     {
         #region Tests
+        #region Equals
         [Fact]
         public void Equal_Identical()
         {
@@ -49,7 +51,7 @@ namespace Pims.Api.Test.Helpers
         {
             // Arrange
             var o1 = EntityHelper.CreatePropertyClassification("test");
-            var o2 = new { Id = 1, Name = "test", IsVisible = true, IsDisabled = false, SortOrder = 0, o1.CreatedById, o1.CreatedOn, o1.UpdatedById, o1.UpdatedOn, o1.RowVersion };
+            var o2 = new { Id = 1, Name = "test", IsVisible = true, IsDisabled = false, SortOrder = 0, o1.RowVersion };
 
             var comparer = new ShallowPropertyCompare();
 
@@ -123,6 +125,26 @@ namespace Pims.Api.Test.Helpers
             // Assert
             Assert.True(result);
         }
+        #endregion
+
+        #region GetHashCode
+        [Fact]
+        public void GetHashCode_Success()
+        {
+            // Arrange
+            var o1 = new { Id = 1, Name = "test", Items = new[] { new { Id = 2 }, new { Id = 3 } } };
+            var o2 = new { Id = 1, Name = "test", Items = new[] { new { Id = 2 }, new { Id = 3 } } };
+
+            var comparer = new ShallowPropertyCompare();
+
+            // Act
+            var result1 = comparer.GetHashCode(o1);
+            var result2 = comparer.GetHashCode(o2);
+
+            // Assert
+            result1.Should().Be(result2);
+        }
+        #endregion
         #endregion
     }
 }

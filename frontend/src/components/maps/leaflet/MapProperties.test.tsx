@@ -1,53 +1,43 @@
-import React, { createRef } from 'react';
-import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
-import { IProperty, IParcelDetail, IParcel } from 'actions/parcelsActions';
-import Map from './Map';
-import { Map as LeafletMap } from 'leaflet';
-import { MapProps as LeafletMapProps, Marker, Map as ReactLeafletMap } from 'react-leaflet';
-import { mount } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
-import * as reducerTypes from 'constants/reducerTypes';
-import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import { wait, fireEvent, render, cleanup } from '@testing-library/react';
-import { Provider } from 'react-redux';
 import { useKeycloak } from '@react-keycloak/web';
-import { useApi, PimsAPI } from 'hooks/useApi';
-import { createPoints } from './mapUtils';
-import SelectedPropertyMarker from './SelectedPropertyMarker/SelectedPropertyMarker';
-import { fetchPropertyNames } from 'actionCreators/propertyActionCreator';
+import userEvent from '@testing-library/user-event';
 import axios from 'axios';
-
 import MockAdapter from 'axios-mock-adapter';
+import { Classifications } from 'constants/classifications';
+import { PropertyTypes } from 'constants/propertyTypes';
+import { usePropertyNames } from 'features/properties/common/slices/usePropertyNames';
+import { PimsAPI, useApi } from 'hooks/useApi';
+import { IParcel, IProperty } from 'interfaces';
+import React from 'react';
+import leafletMouseSlice from 'store/slices/leafletMouse/LeafletMouseSlice';
+import { lookupCodesSlice } from 'store/slices/lookupCodes';
+import { IPropertyDetail, propertiesSlice } from 'store/slices/properties';
+import { cleanup, deferred, render, RenderOptions, waitFor } from 'utils/test-utils';
+
+import { PointFeature } from '../types';
+import Map from './Map';
+import { createPoints } from './mapUtils';
 
 const mockAxios = new MockAdapter(axios);
-jest.mock('@react-keycloak/web');
-Enzyme.configure({ adapter: new Adapter() });
-const mockStore = configureMockStore([thunk]);
-jest.mock('hooks/useApi');
-jest.mock('actionCreators/propertyActionCreator');
 
-(fetchPropertyNames as any).mockImplementation(jest.fn(() => () => ['test']));
+jest.mock('@react-keycloak/web');
+
+jest.mock('features/properties/common/slices/usePropertyNames');
+const fetchPropertyNames = jest.fn(() => Promise.resolve(['test']));
+(usePropertyNames as jest.Mock<ReturnType<typeof usePropertyNames>>).mockReturnValue({
+  fetchPropertyNames,
+});
 
 // This mocks the parcels of land a user can see - should be able to see 2 markers
 const mockParcels = [
-  { id: 1, latitude: 48.455059, longitude: -123.496452, propertyTypeId: 1 },
-  { id: 2, latitude: 53.917065, longitude: -122.749672, propertyTypeId: 0 },
+  { id: 1, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Parcel },
+  { id: 2, latitude: 53.917065, longitude: -122.749672, propertyTypeId: PropertyTypes.Parcel },
 ] as IProperty[];
-((useApi as unknown) as jest.Mock<Partial<PimsAPI>>).mockReturnValue({
-  loadProperties: jest.fn(async () => {
-    return createPoints(mockParcels);
-  }),
-  getParcel: async () => {
-    return {} as IParcel;
-  },
-});
+
+jest.mock('hooks/useApi');
 
 // This will spoof the active parcel (the one that will populate the popup details)
-const mockDetails: IParcelDetail = {
-  propertyTypeId: 0,
+const mockDetails: IPropertyDetail = {
+  propertyTypeId: PropertyTypes.Parcel,
   parcelDetail: {
     id: 1,
     name: 'test name',
@@ -56,13 +46,12 @@ const mockDetails: IParcelDetail = {
     encumbranceReason: '',
     assessedBuilding: 0,
     assessedLand: 0,
-    projectNumbers: [],
-    classificationId: 0,
+    classificationId: Classifications.CoreStrategic,
     zoning: '',
     zoningPotential: '',
     agencyId: 0,
     latitude: 48,
-    longitude: 123,
+    longitude: -123,
     classification: 'Core Operational',
     description: 'test',
     isSensitive: false,
@@ -89,17 +78,95 @@ const mockDetails: IParcelDetail = {
   },
 };
 
-const store = mockStore({
-  [reducerTypes.LOOKUP_CODE]: { lookupCodes: [] },
-  [reducerTypes.PARCEL]: { parcelDetail: mockDetails, draftParcels: [] },
-  [reducerTypes.LEAFLET_CLICK_EVENT]: { parcelDetail: mockDetails },
-});
+const storeState = {
+  [lookupCodesSlice.name]: { lookupCodes: [] },
+  [propertiesSlice.name]: { parcelDetail: mockDetails, draftParcels: [] },
+  [leafletMouseSlice.name]: { parcelDetail: mockDetails },
+};
 
 // To check for alert message
-const emptyDetails = null;
 const noParcels = [] as IProperty[];
 
-let history = createMemoryHistory();
+const baseMapLayers = {
+  basemaps: [
+    {
+      name: 'Map',
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+      thumbnail: '/streets.jpg',
+    },
+    {
+      name: 'Satellite',
+      url:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution:
+        'Tiles &copy; Esri &mdash; Source: Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
+      thumbnail: '/satellite.jpg',
+    },
+  ],
+};
+
+interface TestProps {
+  properties: IProperty[];
+  selectedProperty: IPropertyDetail | null;
+  disableMapFilterBar: boolean;
+  zoom?: number;
+  done?: () => void;
+  setMap?: (map: L.Map) => void;
+  renderOptions?: RenderOptions;
+}
+
+function createProps(): TestProps {
+  return {
+    properties: mockParcels,
+    selectedProperty: mockDetails,
+    disableMapFilterBar: false,
+    renderOptions: { useMockAuthentication: true, agencies: [0], store: storeState },
+  };
+}
+
+// component under test
+function Template(props: Omit<TestProps, 'renderOptions'>) {
+  const { done, setMap, zoom = 6, ...rest } = props;
+  return (
+    <Map
+      lat={48.43}
+      lng={-123.37}
+      zoom={zoom}
+      agencies={[]}
+      administrativeAreas={[]}
+      whenReady={done}
+      whenCreated={setMap}
+      {...rest}
+    />
+  );
+}
+
+function setup(props: Omit<TestProps, 'done'>) {
+  const { renderOptions, ...uiProps } = props;
+  // create a promise to wait for the map to be ready (which happens after initial render)
+  const { promise, resolve } = deferred();
+  const uiToRender = <Template {...uiProps} done={resolve} />;
+  const component = render(uiToRender, renderOptions);
+  return {
+    component,
+    ready: promise,
+    findSlideOutButton: () => document.querySelector('#slideOutInfoButton') as HTMLElement,
+    findLayerListButton: () => document.querySelector('#layersControlButton') as HTMLElement,
+    findLayerListContainer: () => document.querySelector('#layersContainer') as HTMLElement,
+    findFilterBar: () => document.querySelector('.map-filter-bar') as HTMLElement,
+    findNameField: () => document.querySelector('#name-field') as HTMLElement,
+    findSearchButton: () => document.querySelector('#search-button') as HTMLElement,
+    findResetButton: () => document.querySelector('#reset-button') as HTMLElement,
+    findZoomInButton: () => document.querySelector('.leaflet-control-zoom-in') as HTMLElement,
+    findZoomOutButton: () => document.querySelector('.leaflet-control-zoom-out') as HTMLElement,
+    findMapMarker: () =>
+      document.querySelector('.leaflet-marker-icon:not(.marker-cluster)') as HTMLElement,
+    findMapCluster: () =>
+      document.querySelector('.leaflet-marker-icon.marker-cluster') as HTMLElement,
+  };
+}
+
 describe('MapProperties View', () => {
   (useKeycloak as jest.Mock).mockReturnValue({
     keycloak: {
@@ -108,151 +175,175 @@ describe('MapProperties View', () => {
       },
     },
   });
+
+  let mockLoadProperties: jest.Mock<Promise<PointFeature[]>>;
+  let mockGetParcel: jest.Mock<Promise<IParcel>>;
+
   beforeEach(() => {
     mockAxios.reset();
     jest.clearAllMocks();
+    mockAxios.onGet('/basemaps.json').reply(200, baseMapLayers);
     mockAxios.onAny().reply(200);
-    cleanup();
-    history = createMemoryHistory();
-  });
+    delete (window as any).ResizeObserver;
+    window.ResizeObserver = jest.fn().mockImplementation(() => ({
+      observe: jest.fn(),
+      unobserve: jest.fn(),
+      disconnect: jest.fn(),
+    }));
 
-  const getMap = (
-    mapRef: React.RefObject<ReactLeafletMap<LeafletMapProps, LeafletMap>>,
-    properties: IProperty[],
-    selectedProperty: any,
-  ) => {
-    return (
-      <Provider store={store}>
-        <Router history={history}>
-          <Map
-            lat={48.43}
-            lng={-123.37}
-            zoom={14}
-            properties={properties}
-            selectedProperty={selectedProperty}
-            agencies={[]}
-            lotSizes={[]}
-            onMarkerClick={jest.fn()}
-            mapRef={mapRef}
-            administrativeAreas={[]}
-          />
-        </Router>
-      </Provider>
-    );
-  };
+    mockLoadProperties = jest.fn(async () => createPoints(mockParcels));
+    mockGetParcel = jest.fn(async () => ({} as IParcel));
 
-  it('Renders the marker in correct position', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
-    const component = mount(getMap(mapRef, mockParcels, mockDetails));
-    await wait(() => expect(mapRef.current).toBeDefined(), { timeout: 500 });
-    const selectedMarkers = component.find(SelectedPropertyMarker);
-    expect(selectedMarkers.length).toEqual(1);
-    const markerProps = selectedMarkers.first().props();
-    expect(markerProps.position).toEqual([48, 123]);
-  });
-
-  it('Should render 0 markers when there are no parcels', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
-    const component = mount(getMap(mapRef, noParcels, emptyDetails));
-    await wait(() => expect(mapRef.current).toBeDefined(), { timeout: 500 });
-    const marker = component.find(Marker);
-    expect(marker.length).toBe(0);
-    const selectedMarker = component.find(SelectedPropertyMarker);
-    expect(selectedMarker.length).toBe(0);
-  });
-
-  it('Renders the properties as cluster and on selected property', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
-
-    const component = mount(getMap(mapRef, mockParcels, mockDetails));
-
-    await wait(() => expect(mapRef.current).toBeDefined(), { timeout: 500 });
-    const marker = component.find(Marker);
-    const selectedMarker = component.find(SelectedPropertyMarker).first();
-    expect(selectedMarker).toBeDefined();
-    await wait(
-      () => {
-        expect(marker.length).toBe(1);
-      },
-      { timeout: 500 },
-    );
-  });
-
-  it('by default makes the expected calls to load map data', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
-
-    mount(getMap(mapRef, noParcels, emptyDetails));
-
-    const { loadProperties } = useApi();
-    const bbox = (loadProperties as jest.Mock).mock.calls.map(call => call[0].bbox);
-    const expectedBbox = [
-      '-146.25,-135,55.77657301866769,61.60639637138628',
-      '-146.25,-135,48.922499263758255,55.77657301866769',
-      '-146.25,-135,40.97989806962013,48.922499263758255',
-      '-135,-123.75,55.77657301866769,61.60639637138628',
-      '-135,-123.75,48.922499263758255,55.77657301866769',
-      '-135,-123.75,40.97989806962013,48.922499263758255',
-      '-123.75,-112.5,55.77657301866769,61.60639637138628',
-      '-123.75,-112.5,48.922499263758255,55.77657301866769',
-      '-123.75,-112.5,40.97989806962013,48.922499263758255',
-    ]; //given our map dimensions and center point, this array should never change.
-    await wait(() => expect(loadProperties).toHaveBeenCalledTimes(9), { timeout: 500 });
-    expect(bbox).toEqual(expectedBbox);
-  });
-
-  it('makes the correct calls to load map data when filter updated.', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
-
-    const { container } = render(getMap(mapRef, noParcels, emptyDetails));
-    const nameInput = container.querySelector('#name-field');
-    fireEvent.change(nameInput!, {
-      target: {
-        value: 'testname',
-      },
+    ((useApi as unknown) as jest.Mock<Partial<PimsAPI>>).mockReturnValue({
+      loadProperties: mockLoadProperties,
+      getParcel: mockGetParcel,
     });
-    fireEvent.blur(nameInput!);
-    const searchButton = container.querySelector('#search-button');
-    fireEvent.click(searchButton!);
-
-    const { loadProperties } = useApi();
-    await wait(() => expect(loadProperties).toHaveBeenCalledTimes(18), { timeout: 500 });
-    expect((loadProperties as jest.Mock).mock.calls[9][0].name).toBe('testname');
   });
 
-  it('filter will fire everytime the search button is clicked', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
+  afterEach(() => {
+    window.ResizeObserver = ResizeObserver;
+    jest.restoreAllMocks();
+    cleanup();
+  });
 
-    const { container } = render(getMap(mapRef, noParcels, emptyDetails));
-    const searchButton = container.querySelector('#search-button');
-    fireEvent.click(searchButton!);
+  it('renders correctly', async () => {
+    const props = createProps();
+    const { component, ready } = setup({ ...props, disableMapFilterBar: true });
+    await waitFor(() => ready);
+    expect(component.asFragment()).toMatchSnapshot();
+  });
 
-    const { loadProperties } = useApi();
-    await wait(() => expect(loadProperties).toHaveBeenCalledTimes(18), { timeout: 500 });
+  it('should open the slide out when clicked', async () => {
+    const props = createProps();
+    const { component, ready, findSlideOutButton } = setup({ ...props, disableMapFilterBar: true });
+    await waitFor(() => ready);
+    const infoButton = findSlideOutButton();
+    userEvent.click(infoButton);
+    const { findByText } = component;
+    expect(await findByText(/Click a pin to view the property details/i)).toBeVisible();
+  });
+
+  it('should open the layer list when clicked', async () => {
+    const props = createProps();
+    const { ready, findLayerListButton, findLayerListContainer } = setup({
+      ...props,
+      disableMapFilterBar: true,
+    });
+    await waitFor(() => ready);
+    const layersContainer = findLayerListContainer();
+    expect(layersContainer).toBeInTheDocument();
+    expect(layersContainer.className).toContain('closed');
+    // clicking the button should open the layer list...
+    const layersControlButton = findLayerListButton();
+    userEvent.click(layersControlButton);
+    await waitFor(() => expect(layersContainer.className).not.toContain('closed'));
+  });
+
+  it(`renders the filter bar when disableMapFilterBar is set to "false"`, async () => {
+    const props = createProps();
+    const { ready, findFilterBar } = setup({ ...props, disableMapFilterBar: false });
+    await waitFor(() => ready);
+    const propertyFilter = findFilterBar();
+    expect(propertyFilter).toBeInTheDocument();
+    expect(propertyFilter).toBeVisible();
+  });
+
+  it(`doesn't render the filter bar when disableMapFilterBar is set to "true"`, async () => {
+    const props = createProps();
+    const { ready, findFilterBar } = setup({ ...props, disableMapFilterBar: true });
+    await waitFor(() => ready);
+    const propertyFilter = findFilterBar();
+    expect(propertyFilter).toBeNull();
+  });
+
+  it('should render a marker for selected property', async () => {
+    const props = createProps();
+    const { ready, findMapMarker } = setup(props);
+    await waitFor(() => ready);
+    const marker = findMapMarker() as HTMLImageElement;
+    expect(marker).toBeVisible();
+    expect(marker.src).toContain('assets/images/pins/land-reg-highlight.png');
+    expect(marker.className).not.toContain('marker-cluster');
+  });
+
+  it(`should render 0 markers when there are no parcels`, async () => {
+    mockLoadProperties.mockResolvedValue([]);
+    const props = createProps();
+    const { ready, findMapMarker } = setup({
+      ...props,
+      properties: noParcels,
+      selectedProperty: null,
+    });
+    await waitFor(() => ready);
+    const marker = findMapMarker();
+    expect(marker).toBeNull();
+  });
+
+  it('should render the properties as cluster and on selected property', async () => {
+    const props = createProps();
+    const { ready, findMapCluster } = setup(props);
+    await waitFor(() => ready);
+    const cluster = findMapCluster();
+    expect(cluster).toBeVisible();
+  });
+
+  it('should call the API to load map data', async () => {
+    const props = createProps();
+    const { ready } = setup(props);
+    await waitFor(() => ready);
+    expect(mockLoadProperties).toHaveBeenCalled();
+  });
+
+  it('makes the correct calls to load map data when filter is updated', async () => {
+    const props = createProps();
+    const { ready, findNameField, findSearchButton } = setup({
+      ...props,
+      properties: noParcels,
+      selectedProperty: null,
+    });
+    await waitFor(() => ready);
+    // type something in the filter bar
+    const nameInput = findNameField();
+    const searchButton = findSearchButton();
+    userEvent.type(nameInput, 'testname');
+    await waitFor(() => userEvent.click(searchButton));
+    // check API call params...
+    const filter = expect.objectContaining({ name: 'testname' });
+    await waitFor(() => expect(mockLoadProperties).toHaveBeenCalledWith(filter));
+  });
+
+  it('should fire the filter every time the search button is clicked', async () => {
+    const props = createProps();
+    const { ready, findSearchButton } = setup({
+      ...props,
+      properties: noParcels,
+      selectedProperty: null,
+    });
+    await waitFor(() => ready);
+    const searchButton = findSearchButton();
+    await waitFor(() => userEvent.click(searchButton));
+    expect(mockLoadProperties).toHaveBeenCalled();
   });
 
   it('makes the correct calls to load the map data when the reset filter is clicked', async () => {
-    const mapRef = createRef<ReactLeafletMap<LeafletMapProps, LeafletMap>>();
-
-    const { container } = render(getMap(mapRef, noParcels, emptyDetails));
-    const { loadProperties } = useApi();
-
-    await wait(() => expect(loadProperties).toHaveBeenCalledTimes(9), { timeout: 500 });
-
-    const nameInput = container.querySelector('#name-field');
-    fireEvent.change(nameInput!, {
-      target: {
-        value: 'testname',
-      },
+    const props = createProps();
+    const { ready, findNameField, findSearchButton, findResetButton } = setup({
+      ...props,
+      properties: noParcels,
+      selectedProperty: null,
     });
-    fireEvent.blur(nameInput!);
-
-    const searchButton = container.querySelector('#search-button');
-    fireEvent.click(searchButton!);
-    await wait(() => expect(loadProperties).toHaveBeenCalledTimes(18), { timeout: 500 });
-    const resetButton = container.querySelector('#reset-button');
-    fireEvent.click(resetButton!);
-    await wait(() => expect(loadProperties).toHaveBeenCalledTimes(27), { timeout: 500 });
-
-    expect((loadProperties as jest.Mock).mock.calls[18][0].name).toBe('');
+    await waitFor(() => ready);
+    // type something in the filter bar
+    const nameInput = findNameField();
+    const searchButton = findSearchButton();
+    userEvent.type(nameInput, 'testname');
+    await waitFor(() => userEvent.click(searchButton));
+    // check API call params...
+    const filter = expect.objectContaining({ name: 'testname' });
+    await waitFor(() => expect(mockLoadProperties).toHaveBeenCalledWith(filter));
+    const resetButton = findResetButton();
+    await waitFor(() => userEvent.click(resetButton));
+    const defaultFilter = expect.objectContaining({ name: '' });
+    await waitFor(() => expect(mockLoadProperties).toHaveBeenCalledWith(defaultFilter));
   });
 });

@@ -1,13 +1,13 @@
-import { ILookupCode } from 'actions/lookupActions';
-import { startCase, isNull, isUndefined, isEmpty, lowerFirst, keys } from 'lodash';
-import { SelectOption } from 'components/common/form';
-import { FormikProps, getIn } from 'formik';
-import { SortDirection, TableSort } from 'components/Table/TableSort';
 import { AxiosError } from 'axios';
-import { showLoading, hideLoading } from 'react-redux-loading-bar';
-import { success, error, request } from 'actions/genericActions';
+import { SelectOption } from 'components/common/form';
+import { TableSort } from 'components/Table/TableSort';
+import { FormikProps, getIn } from 'formik';
+import _ from 'lodash';
+import { isEmpty, isNull, isUndefined, keys, lowerFirst, startCase } from 'lodash';
 import moment from 'moment-timezone';
-import { IStatus } from 'features/projects/common';
+import { hideLoading, showLoading } from 'react-redux-loading-bar';
+import { ILookupCode } from 'store/slices/lookupCodes';
+import { logError, logRequest, logSuccess } from 'store/slices/network/networkSlice';
 
 /**
  * Convert the specified 'input' value into a decimal or undefined.
@@ -55,22 +55,6 @@ export const mapLookupCodeWithParentString = (
   parent: options.find((a: ILookupCode) => a.id.toString() === code.parentId?.toString())?.name,
 });
 
-const createParentWorkflow = (code: string) => {
-  if (/^DR/.test(code)) {
-    return { name: 'Draft Statuses', id: 1 };
-  } else if (/EXE/.test(code)) {
-    return { name: 'Exemption Statuses', id: 2 };
-  } else if (/^AS/.test(code)) {
-    return { name: 'Assessment Statuses', id: 3 };
-  } else if (/^ERP/.test(code) || /^AP-ERP$/.test(code)) {
-    return { name: 'ERP Statuses', id: 4 };
-  } else if (/^SPL/.test(code) || /^AP-SPL$/.test(code)) {
-    return { name: 'SPL Statuses', id: 5 };
-  } else {
-    return { name: 'General Statuses', id: 6 };
-  }
-};
-
 /** used for inputs that need to display the string value of a parent agency agency */
 export const mapSelectOptionWithParent = (
   code: SelectOption,
@@ -83,13 +67,6 @@ export const mapSelectOptionWithParent = (
   parentId: code.parentId,
   parent: options.find((a: SelectOption) => a.value.toString() === code.parentId?.toString())
     ?.label,
-});
-
-export const mapStatuses = (status: IStatus): SelectOption => ({
-  label: status.name,
-  value: status.id.toString(),
-  parent: createParentWorkflow(status.code).name,
-  parentId: createParentWorkflow(status.code).id,
 });
 
 type FormikMemoProps = {
@@ -141,39 +118,23 @@ export const handleAxiosResponse = (
   actionType: string,
   axiosPromise: Promise<any>,
 ): Promise<any> => {
-  dispatch(request(actionType));
+  dispatch(logRequest(actionType));
   dispatch(showLoading());
   return axiosPromise
     .then((response: any) => {
-      dispatch(success(actionType));
+      dispatch(logSuccess({ name: actionType }));
       dispatch(hideLoading());
       return response.data ?? response.payload;
     })
     .catch((axiosError: AxiosError) => {
-      dispatch(error(actionType, axiosError?.response?.status, axiosError));
+      dispatch(
+        logError({ name: actionType, status: axiosError?.response?.status, error: axiosError }),
+      );
       throw axiosError;
     })
     .finally(() => {
       dispatch(hideLoading());
     });
-};
-
-export const validateFormikWithCallback = (formikProps: FormikProps<any>, callback: Function) => {
-  formikProps.validateForm().then((errors: any) => {
-    if (errors !== undefined && Object.keys(errors).length === 0) {
-      callback();
-    } else {
-      //force formik to display the validation errors.
-      formikProps.submitForm();
-    }
-  });
-};
-export const generateSortCriteria = (column: string, direction: SortDirection) => {
-  if (!column || !direction) {
-    return '';
-  }
-
-  return `${startCase(column).replace(' ', '')} ${direction}`;
 };
 
 /**
@@ -215,26 +176,10 @@ export const getCurrentFiscalYear = (): number => {
   return now.month() >= 4 ? now.add(1, 'years').year() : now.year();
 };
 
-export const getFiscalYear = (date?: Date | string): number => {
-  let momentDate = undefined;
-  if (typeof date === 'string' || date instanceof String) {
-    momentDate = moment(date, 'YYYY-MM-DD');
-  } else {
-    momentDate = moment(date);
-  }
-  return momentDate.month() >= 4 ? momentDate.add(1, 'years').year() : momentDate.year();
-};
-
 export const formatDate = (date?: string | Date) => {
   return !!date ? moment(date).format('YYYY-MM-DD') : '';
 };
 
-export const formatFiscalYear = (year: string | number | undefined): string => {
-  if (year === undefined) return '';
-  const fiscalYear = +year;
-  const previousFiscalYear = fiscalYear - 1;
-  return `${previousFiscalYear.toString().slice(-2)}/${fiscalYear.toString().slice(-2)}`;
-};
 /**
  * Format the passed string date assuming the date was recorded in UTC (as is the case with the pims API server).
  * Returns a date formatted for display in the current time zone of the user.
@@ -249,14 +194,6 @@ export const formatApiDateTime = (date: string | undefined) => {
     : '';
 };
 
-export const formatDateFiscal = (date: string | undefined) => {
-  return !!date
-    ? `${moment(date)
-        .subtract(1, 'years')
-        .format('YYYY')}/${moment(date).format('YYYY')}`
-    : '';
-};
-
 /**
  * Get the current date time in the UTC timezone. This allows the frontend to create timestamps that are compatible with timestamps created by the API.
  */
@@ -268,30 +205,44 @@ export const generateUtcNowDateTime = () =>
 /**
  * Returns true only if the passed mouse event occurred within the last 500ms, or the mouse event is null.
  */
-export const isMouseEventRecent = (e?: MouseEvent | null) =>
-  e === null || (!!e?.timeStamp && e.timeStamp >= (document?.timeline?.currentTime ?? 0) - 500);
+export const isMouseEventRecent = (timeStamp?: number) =>
+  !!timeStamp && timeStamp >= (document?.timeline?.currentTime ?? 0) - 500;
 
 /**
- * Convert the passed square meter value to hectares.
- * @param squareMeters
+ * postalCodeFormatter takes the specified postal code and formats it with a space in the middle
+ * @param {string} postal The target postal to be formatted
  */
-export const squareMetersToHectares = (squareMeters: number) => (squareMeters / 10000).toFixed(2);
-
-export function stringToNull(value: any) {
-  return emptyStringToNull(value, value);
-}
-
-export function emptyStringToNull(value: any, originalValue: any) {
-  if (typeof originalValue === 'string' && originalValue === '') {
-    return undefined;
+export const postalCodeFormatter = (postal: string) => {
+  const regex = /([a-zA-z][0-9][a-zA-z])[\s-]?([0-9][a-zA-z][0-9])/;
+  const format = postal.match(regex);
+  if (format !== null && format.length === 3) {
+    postal = `${format[1]} ${format[2]}`;
   }
-  return value;
-}
+  return postal.toUpperCase();
+};
 
 /**
- * Determine if the specified project status code requires a clearance notification sent on value.
- * @param statusCode The project status code.
+ * Using the administrative areas code set, find the matching municipality returned by the parcel layer, if present.
+ * @param administrativeAreas the full list from the administrative areas code set.
+ * @param layerMunicipality the municipality returned by the layer.
  */
-export const clearanceNotificationSentOnRequired = (statusCode: string) => {
-  return ['ERP-ON', 'ERP-OH'].includes(statusCode);
+export const getAdminAreaFromLayerData = (
+  administrativeAreas: ILookupCode[],
+  layerMunicipality: string,
+) => {
+  let administrativeArea = _.find(administrativeAreas, { name: layerMunicipality });
+  if (administrativeArea) {
+    return administrativeArea;
+  }
+  if (!!layerMunicipality?.length) {
+    const splitLayerMunicipality = layerMunicipality.split(',');
+    if (splitLayerMunicipality.length === 2) {
+      const formattedLayerMunicipality = `${splitLayerMunicipality[1].trim()} ${splitLayerMunicipality[0].trim()}`;
+      let match = _.find(administrativeAreas, { name: formattedLayerMunicipality });
+      if (!match) {
+        match = _.find(administrativeAreas, { name: splitLayerMunicipality[0].trim() });
+      }
+      return match;
+    }
+  }
 };

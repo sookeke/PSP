@@ -1,44 +1,50 @@
-import React, { useEffect } from 'react';
-import { Navbar, Container, Row, Col, ButtonToolbar, Button } from 'react-bootstrap';
-import { Form, Input, Select, SelectOption } from '../../../components/common/form';
-import { fetchUserDetail, getUpdateUserAction } from 'actionCreators/usersActionCreator';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
-import { IUserDetails } from 'interfaces';
-import { Formik, Field } from 'formik';
-import { UserUpdateSchema } from 'utils/YupSchema';
-import { IUserDetailParams } from 'constants/API';
-import * as API from 'constants/API';
 import './EditUserPage.scss';
-import { Label } from 'components/common/Label';
-import { useHistory } from 'react-router-dom';
-import TooltipWrapper from 'components/common/TooltipWrapper';
-import { formatApiDateTime } from 'utils';
-import useCodeLookups from 'hooks/useLookupCodes';
-import { ILookupCode } from 'actions/lookupActions';
-import { AUTHORIZATION_URL } from 'constants/strings';
 
-interface IEditUserPageProps extends IUserDetailParams {
+import { Label } from 'components/common/Label';
+import TooltipWrapper from 'components/common/TooltipWrapper';
+import * as API from 'constants/API';
+import { AUTHORIZATION_URL } from 'constants/strings';
+import { Field, Formik } from 'formik';
+import useLookupCodeHelpers from 'hooks/useLookupCodeHelpers';
+import { useEffect } from 'react';
+import Button from 'react-bootstrap/Button';
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import Navbar from 'react-bootstrap/Navbar';
+import Row from 'react-bootstrap/Row';
+import { useHistory } from 'react-router-dom';
+import { useAppSelector } from 'store/hooks';
+import { ILookupCode } from 'store/slices/lookupCodes';
+import { useUsers } from 'store/slices/users';
+import { formatApiDateTime } from 'utils';
+import { UserUpdateSchema } from 'utils/YupSchema';
+
+import { Form, Input, Select, SelectOption } from '../../../components/common/form';
+
+interface IEditUserPageProps {
+  userKey: string;
   match?: any;
 }
 
 const EditUserPage = (props: IEditUserPageProps) => {
-  const userId = props?.match?.params?.id || props.id;
+  const userId = props?.match?.params?.key || props.userKey;
   const history = useHistory();
-  const dispatch = useDispatch();
-  useEffect(() => {
-    dispatch(fetchUserDetail({ id: userId }));
-  }, [dispatch, userId]);
+  const { updateUser, fetchUserDetail } = useUsers();
 
-  const { getByType } = useCodeLookups();
+  useEffect(() => {
+    fetchUserDetail(userId);
+  }, [userId, fetchUserDetail]);
+
+  const { getByType } = useLookupCodeHelpers();
   const agencies = getByType(API.AGENCY_CODE_SET_NAME);
   const roles = getByType(API.ROLE_CODE_SET_NAME);
 
-  const user = useSelector<RootState, IUserDetails>(state => state.GET_USER_DETAIL as IUserDetails);
+  const user = useAppSelector(state => state.users.userDetail);
   const mapLookupCode = (code: ILookupCode): SelectOption => ({
     label: code.name,
-    value: code.id.toString(),
-    selected: !!user.roles.find(x => x.id === code.id.toString()),
+    value: code.id,
+    selected: !!user?.roles?.find(x => x.id === code.id.toString()) ?? [],
   });
 
   const selectAgencies = agencies.map(c => mapLookupCode(c));
@@ -55,7 +61,9 @@ const EditUserPage = (props: IEditUserPageProps) => {
       data-testid="agency"
       required={true}
       options={selectAgencies}
-      placeholder={user?.agencies?.length > 0 ? undefined : 'Please Select'}
+      placeholder={
+        user?.agencies?.length && user?.agencies?.length > 0 ? undefined : 'Please Select'
+      }
     />
   );
 
@@ -77,7 +85,7 @@ const EditUserPage = (props: IEditUserPageProps) => {
           multiple={true}
           required={true}
           options={selectRoles}
-          placeholder={user?.roles?.length > 0 ? undefined : 'Please Select'}
+          placeholder={user?.roles?.length && user.roles.length > 0 ? undefined : 'Please Select'}
         />
       </TooltipWrapper>
     </Form.Group>
@@ -88,20 +96,20 @@ const EditUserPage = (props: IEditUserPageProps) => {
   };
 
   const initialValues = {
-    username: user.username,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email,
-    displayName: user.displayName,
-    isDisabled: !!user.isDisabled,
-    rowVersion: user.rowVersion,
+    username: user.username ?? '',
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
+    email: user.email ?? '',
+    displayName: user.displayName ?? '',
+    isDisabled: !!user.isDisabled ?? '',
+    rowVersion: user.rowVersion ?? '',
     emailVerified: false,
-    agencies: user.agencies,
-    roles: user.roles.map(x => x.id),
-    note: user.note,
+    agencies: user.agencies ?? [],
+    roles: user?.roles?.map(x => x.id) ?? [],
+    note: user.note ?? '',
     agency: user.agencies && user.agencies.length !== 0 ? user.agencies[0].id : '',
     role: user.roles && user.roles.length !== 0 ? user.roles[0].id : '',
-    position: user.position,
+    position: user.position ?? '',
     lastLogin: formatApiDateTime(user.lastLogin),
   };
 
@@ -116,38 +124,34 @@ const EditUserPage = (props: IEditUserPageProps) => {
             enableReinitialize
             initialValues={initialValues}
             validationSchema={UserUpdateSchema}
-            onSubmit={(values, { setSubmitting }) => {
+            onSubmit={async (values, { setSubmitting, setValues }) => {
               if (values.agency !== '') {
                 agenciesToUpdate = [{ id: Number(values.agency) }];
               } else {
-                agenciesToUpdate = user.agencies;
+                agenciesToUpdate = user.agencies ?? [];
               }
-
               if (values.roles) {
                 rolesToUpdate = values.roles.map(r => ({ id: r }));
               } else {
-                rolesToUpdate = user.roles;
+                rolesToUpdate = user.roles ?? [];
               }
-              dispatch(
-                getUpdateUserAction(
-                  { id: userId },
-                  {
-                    id: user.id,
-                    username: user.username,
-                    displayName: values.displayName,
-                    firstName: values.firstName,
-                    lastName: values.lastName,
-                    email: values.email,
-                    isDisabled: values.isDisabled,
-                    rowVersion: values.rowVersion,
-                    emailVerified: values.emailVerified,
-                    agencies: agenciesToUpdate,
-                    roles: rolesToUpdate,
-                    position: values.position,
-                    note: values.note,
-                  },
-                ),
-              );
+
+              await updateUser({
+                id: user.id,
+                key: user.key,
+                username: user.username,
+                displayName: values.displayName,
+                firstName: values.firstName,
+                lastName: values.lastName,
+                email: values.email,
+                isDisabled: values.isDisabled,
+                rowVersion: values.rowVersion,
+                emailVerified: values.emailVerified,
+                agencies: agenciesToUpdate,
+                roles: rolesToUpdate,
+                position: values.position ?? undefined,
+                note: values.note,
+              });
               setSubmitting(false);
             }}
           >

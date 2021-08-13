@@ -1,8 +1,10 @@
-import React, { ReactNode } from 'react';
-import { ListGroup, Form } from 'react-bootstrap';
-import classNames from 'classnames';
-import ClickAwayListener from 'react-click-away-listener';
 import './Menu.scss';
+
+import classNames from 'classnames';
+import React, { ReactNode } from 'react';
+import Form from 'react-bootstrap/Form';
+import ListGroup from 'react-bootstrap/ListGroup';
+import ClickAwayListener from 'react-click-away-listener';
 
 export interface IMenuItemProps {
   label: string | number;

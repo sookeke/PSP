@@ -1,30 +1,26 @@
-import * as React from 'react';
-import { IUserRecord } from '../interfaces/IUserRecord';
-import { useStore, useDispatch } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
-import { IUser } from 'interfaces';
-import { getUpdateUserAction } from 'actionCreators/usersActionCreator';
 import { Menu } from 'components/menu/Menu';
+import { IUser } from 'interfaces';
 import { FiMoreHorizontal } from 'react-icons/fi';
-import { CellProps } from 'react-table';
-import { IUsersState } from 'reducers/usersReducer';
 import { useHistory } from 'react-router-dom';
+import { CellProps } from 'react-table';
+import { useAppSelector } from 'store/hooks';
+import { useUsers } from 'store/slices/users';
+
+import { IUserRecord } from '../interfaces/IUserRecord';
 
 export const RowActions = (props: CellProps<IUserRecord>) => {
-  const store = useStore();
-  const dispatch = useDispatch();
   const history = useHistory();
+  const { updateUser } = useUsers();
 
+  const users = useAppSelector(state => state.users.pagedUsers.items);
   const getUser = (): IUser | undefined =>
-    ((store.getState() as RootState).users as IUsersState).pagedUsers.items.find(
-      (user: IUser) => user.id === props.row.original.id,
-    );
+    users.find((user: IUser) => user.id === props.row.original.id);
 
   const changeAccountStatus = async (disabled: boolean) => {
     const user = getUser();
     if (user) {
       user.isDisabled = disabled;
-      await getUpdateUserAction({ id: props.row.original.id }, user)(dispatch);
+      await updateUser(user);
     }
   };
   const enableUser = async () => {

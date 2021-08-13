@@ -1,5 +1,7 @@
+using FluentAssertions;
 using Pims.Core.Comparers;
 using Pims.Core.Test;
+using System;
 using System.Diagnostics.CodeAnalysis;
 using Xunit;
 using Entity = Pims.Dal.Entities;
@@ -13,6 +15,7 @@ namespace Pims.Api.Test.Helpers
     public class DeepPropertyCompareTest_Generic
     {
         #region Tests
+        #region Equal
         [Fact]
         public void Equal_Identical()
         {
@@ -65,7 +68,7 @@ namespace Pims.Api.Test.Helpers
         {
             // Arrange
             var o1 = EntityHelper.CreatePropertyClassification("test");
-            var o2 = new { Id = 1, Name = "test", IsDisabled = false, SortOrder = 0, o1.CreatedById, o1.CreatedOn, o1.UpdatedById, o1.UpdatedOn, o1.RowVersion };
+            var o2 = new { Id = 1, Name = "test", IsDisabled = false, SortOrder = 0, o1.RowVersion };
 
             var comparer = new DeepPropertyCompare<Entity.Parcel>();
 
@@ -123,6 +126,35 @@ namespace Pims.Api.Test.Helpers
             // Assert
             Assert.False(result);
         }
+        #endregion
+
+        #region GetHashCode
+        [Fact]
+        public void GetHashCode_Success()
+        {
+            // Arrange
+            var date = DateTime.UtcNow;
+            var o1 = new Entity.Parcel(1, 1, 1)
+            {
+                CreatedOn = date,
+                UpdatedOn = date
+            };
+            var o2 = new Entity.Parcel(1, 1, 1)
+            {
+                CreatedOn = date,
+                UpdatedOn = date
+            };
+
+            var comparer = new DeepPropertyCompare<Entity.Parcel>();
+
+            // Act
+            var result1 = comparer.GetHashCode(o1);
+            var result2 = comparer.GetHashCode(o2);
+
+            // Assert
+            result1.Should().Be(result2);
+        }
+        #endregion
         #endregion
     }
 }

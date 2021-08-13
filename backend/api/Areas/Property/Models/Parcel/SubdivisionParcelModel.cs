@@ -1,12 +1,10 @@
-using System;
-using System.Collections.Generic;
 using Model = Pims.Api.Models;
 
 namespace Pims.Api.Areas.Property.Models.Parcel
 {
-    public class SubdivisionParcelModel : Model.BaseModel
+    public class SubdivisionParcelModel : Model.BaseAppModel
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         public string PID { get; set; }
 

@@ -1,20 +1,18 @@
-import { ReactNode } from 'react';
-import LandingMapHelpText from '../components/text/LandingMapHelpText';
-import LandingNavigationHelpText from '../components/text/LandingNavigationHelpText';
 import React from 'react';
-import LandingFilterHelpText from '../components/text/LandingFilterHelpText';
-import QuestionForm from '../forms/QuestionForm';
-import BugForm from '../forms/BugForm';
-import FeatureRequestForm from '../forms/FeatureRequestForm';
-import { Topics, HelpPageKeys, IHelpPage } from '../interfaces';
+import { ReactNode } from 'react';
+
+import DetailNavigationHelpText from '../components/text/DetailNavigationHelpText';
+import DetailViewHelpText from '../components/text/DetailViewHelpText';
 import InventoryFilterHelpText from '../components/text/InventoryFilterHelpText';
 import InventoryListHelpText from '../components/text/InventoryListHelpText';
 import InventoryNavigationHelpText from '../components/text/InventoryNavigationHelpText';
-import DetailNavigationHelpText from '../components/text/DetailNavigationHelpText';
-import DetailViewHelpText from '../components/text/DetailViewHelpText';
-import { CreateDisposalNavigationHelpText } from '../components/text/CreateDisposalNavigationHelpText';
-import { DisposalStepsHelpText } from '../components/text/DisposalStepsHelpText';
-import { AssessDisposalProjectText } from '../components/text/AssesDisposalProjectText';
+import LandingFilterHelpText from '../components/text/LandingFilterHelpText';
+import LandingMapHelpText from '../components/text/LandingMapHelpText';
+import LandingNavigationHelpText from '../components/text/LandingNavigationHelpText';
+import BugForm from '../forms/BugForm';
+import FeatureRequestForm from '../forms/FeatureRequestForm';
+import QuestionForm from '../forms/QuestionForm';
+import { HelpPageKeys, IHelpPage, Topics } from '../interfaces';
 
 /**
  * a map between a topic name and the component to display when the corresponding topic name is active. This map only includes topics for the landing page.
@@ -43,18 +41,6 @@ export const propertyDetailPageTopics = new Map<Topics, ReactNode>([
 ]);
 
 /**
- * a map between a topic name and the component to display when the corresponding topic name is active. This map only includes topics for the creation of disposal projects.
- */
-export const createProjectPageTopics = new Map<Topics, ReactNode>([
-  [Topics.CREATE_PROJECT_NAVIGATION, <CreateDisposalNavigationHelpText />],
-  [Topics.CREATE_PROJECT_STEPS, <DisposalStepsHelpText />],
-]);
-
-export const assessProjectPageTopics = new Map<Topics, ReactNode>([
-  [Topics.ASSESS_PROJECT, <AssessDisposalProjectText />],
-]);
-
-/**
  * A map of help pages. The key is the base route path of the component. The value is the help page name, and help topics to display at the corresponding path.
  * Note that currently the base path provided in the key will match all child pages. so for example, /mapview and /mapview/56 will both match the Property Detail page.
  */
@@ -65,11 +51,6 @@ export const helpPages = new Map<HelpPageKeys, IHelpPage>([
     HelpPageKeys.PROPERTY_DETAIL_PAGE,
     { name: 'Property Detail View Page', topics: propertyDetailPageTopics },
   ],
-  [
-    HelpPageKeys.CREATE_PROJECT,
-    { name: 'Create Disposal Project', topics: createProjectPageTopics },
-  ],
-  [HelpPageKeys.ASSESS_PROJECT, { name: 'Assess Project', topics: assessProjectPageTopics }],
 ]);
 
 export const PropertyDetailViewHelpPage: IHelpPage = {
@@ -103,8 +84,3 @@ export const helpTickets = new Map<string, (props: any) => ReactNode>([
 export const getTopics = (currentPage: IHelpPage | undefined) => {
   return currentPage?.topics?.keys() === undefined ? [] : Array.from(currentPage.topics.keys());
 };
-
-/**
- * This is the email that all support tickets should be directed to when using the issue reporting system.
- */
-export const pimsSupportEmail = 'rpdimithelp@gov.bc.ca';

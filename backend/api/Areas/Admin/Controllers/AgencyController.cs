@@ -1,20 +1,20 @@
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
 using Pims.Api.Policies;
+using Pims.Core.Extensions;
+using Pims.Dal.Keycloak;
 using Pims.Dal.Security;
 using Pims.Dal.Services.Admin;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Threading.Tasks;
+using EModel = Pims.Dal.Entities.Models;
 using Entity = Pims.Dal.Entities;
 using Model = Pims.Api.Areas.Admin.Models.Agency;
-using EModel = Pims.Dal.Entities.Models;
-using Pims.Dal.Keycloak;
-using Pims.Core.Extensions;
-using System.Threading.Tasks;
 
 namespace Pims.Api.Areas.Admin.Controllers
 {
     /// <summary>
-    /// AgencyController class, provides endpoints for managing agencys.
+    /// AgencyController class, provides endpoints for managing agencies.
     /// </summary>
     [HasPermission(Permissions.AgencyAdmin)]
     [ApiController]
@@ -62,22 +62,6 @@ namespace Pims.Api.Areas.Admin.Controllers
         }
 
         /// <summary>
-        /// GET - Returns a agency for the specified 'id' from the datasource.
-        /// </summary>
-        /// <param name="id">The unique 'id' for the agency to return.</param>
-        /// <returns>The agency requested.</returns>
-        [HttpGet("{id}")]
-        [Produces("application/json")]
-        [ProducesResponseType(typeof(Model.AgencyModel), 200)]
-        [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
-        [SwaggerOperation(Tags = new[] { "admin-agency" })]
-        public IActionResult GetAgency(int id)
-        {
-            var agency = _pimsAdminService.Agency.Get(id);
-            return new JsonResult(_mapper.Map<Model.AgencyModel>(agency));
-        }
-
-        /// <summary>
         /// GET - Returns a paged array of agencies from the datasource.
         /// </summary>
         /// <param name="filter"></param>
@@ -92,6 +76,22 @@ namespace Pims.Api.Areas.Admin.Controllers
             var page = _pimsAdminService.Agency.Get(filter);
             var result = _mapper.Map<Api.Models.PageModel<Model.AgencyModel>>(page);
             return new JsonResult(result);
+        }
+
+        /// <summary>
+        /// GET - Returns a agency for the specified 'id' from the datasource.
+        /// </summary>
+        /// <param name="id">The unique 'id' for the agency to return.</param>
+        /// <returns>The agency requested.</returns>
+        [HttpGet("{id:long}")]
+        [Produces("application/json")]
+        [ProducesResponseType(typeof(Model.AgencyModel), 200)]
+        [ProducesResponseType(typeof(Api.Models.ErrorResponseModel), 400)]
+        [SwaggerOperation(Tags = new[] { "admin-agency" })]
+        public IActionResult GetAgency(long id)
+        {
+            var agency = _pimsAdminService.Agency.Get(id);
+            return new JsonResult(_mapper.Map<Model.AgencyModel>(agency));
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Pims.Api.Areas.Admin.Controllers
             // TODO: This isn't ideal as the db update may be successful but this request may not.
             await entity.Users.ForEachAsync(async u =>
             {
-                var user = _pimsAdminService.User.Get(u.UserId);
+                var user = _pimsAdminService.User.Get(u.Key);
                 await _pimsKeycloakService.UpdateUserAsync(user);
             });
 
@@ -139,7 +139,7 @@ namespace Pims.Api.Areas.Admin.Controllers
             // TODO: This isn't ideal as the db update may be successful but this request may not.
             await entity.Users.ForEachAsync(async u =>
             {
-                var user = _pimsAdminService.User.Get(u.UserId);
+                var user = _pimsAdminService.User.Get(u.Key);
                 await _pimsKeycloakService.UpdateUserAsync(user);
             });
 
@@ -165,7 +165,7 @@ namespace Pims.Api.Areas.Admin.Controllers
             // TODO: This isn't ideal as the db update may be successful but this request may not.
             await entity.Users.ForEachAsync(async u =>
             {
-                var user = _pimsAdminService.User.Get(u.UserId);
+                var user = _pimsAdminService.User.Get(u.Key);
                 await _pimsKeycloakService.UpdateUserAsync(user);
             });
 

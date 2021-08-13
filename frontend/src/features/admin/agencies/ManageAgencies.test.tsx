@@ -1,17 +1,31 @@
-import React from 'react';
+import { useKeycloak } from '@react-keycloak/web';
+import { cleanup, render } from '@testing-library/react';
+import * as actionTypes from 'constants/actionTypes';
+import * as API from 'constants/API';
+import { Formik } from 'formik';
 import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
+import noop from 'lodash/noop';
+import React from 'react';
 import { Provider } from 'react-redux';
+import { Router } from 'react-router-dom';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { ILookupCode } from 'actions/lookupActions';
-import * as actionTypes from 'constants/actionTypes';
-import * as reducerTypes from 'constants/reducerTypes';
-import * as API from 'constants/API';
+import { agenciesSlice } from 'store/slices/agencies';
+import { ILookupCode, lookupCodesSlice } from 'store/slices/lookupCodes';
+import { networkSlice } from 'store/slices/network/networkSlice';
+
 import ManageAgencies from './ManageAgencies';
-import { render, cleanup } from '@testing-library/react';
-import noop from 'lodash/noop';
-import { Formik } from 'formik';
+
+jest.mock('@react-keycloak/web');
+(useKeycloak as jest.Mock).mockReturnValue({
+  keycloak: {
+    userInfo: {
+      agencies: [1],
+      roles: [],
+    },
+    subject: 'test',
+  },
+});
 
 const history = createMemoryHistory();
 history.push('admin/agencies');
@@ -19,7 +33,7 @@ const mockStore = configureMockStore([thunk]);
 
 const lCodes = {
   lookupCodes: [
-    { name: 'agencyVal', id: '1', isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
+    { name: 'agencyVal', id: 1, isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
   ] as ILookupCode[],
 };
 
@@ -29,7 +43,7 @@ jest.mock('react-router-dom', () => ({
 }));
 const getStore = () =>
   mockStore({
-    [reducerTypes.AGENCIES]: {
+    [agenciesSlice.name]: {
       pagedAgencies: {
         page: 1,
         pageIndex: 0,
@@ -58,8 +72,8 @@ const getStore = () =>
         ],
       },
     },
-    [reducerTypes.LOOKUP_CODE]: lCodes,
-    [reducerTypes.NETWORK]: {
+    [lookupCodesSlice.name]: lCodes,
+    [networkSlice.name]: {
       [actionTypes.GET_AGENCIES]: {
         isFetching: false,
       },

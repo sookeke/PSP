@@ -1,13 +1,13 @@
 using Mapster;
 using Microsoft.Extensions.Options;
 using Pims.Api.Mapping.Converters;
-using System.Text.Json;
-using Entity = Pims.Dal.Entities;
-using Model = Pims.Api.Areas.Property.Models.Parcel;
-using BModel = Pims.Api.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using BModel = Pims.Api.Models;
+using Entity = Pims.Dal.Entities;
+using Model = Pims.Api.Areas.Property.Models.Parcel;
 
 namespace Pims.Api.Areas.Property.Mapping.Parcel
 {
@@ -55,10 +55,8 @@ namespace Pims.Api.Areas.Property.Mapping.Parcel
                 .Map(dest => dest.Buildings, src => src.Parcel.Buildings)
                 .Map(dest => dest.Evaluations, src => src.Parcel.Evaluations)
                 .Map(dest => dest.Fiscals, src => src.Parcel.Fiscals)
-                .Map(dest => dest.RowVersion, src => src.Parcel.RowVersion == null ? null : Convert.ToBase64String(src.Parcel.RowVersion))
-                .Inherits<Entity.BaseEntity, BModel.BaseModel>();
-                
-                
+                .Map(dest => dest.RowVersion, src => src.Parcel.RowVersion)
+                .Inherits<Entity.BaseAppEntity, BModel.BaseAppModel>();
 
             config.NewConfig<Model.BuildingParcelModel, Entity.Parcel>()
                 .EnableNonPublicMembers(true)
@@ -82,14 +80,14 @@ namespace Pims.Api.Areas.Property.Mapping.Parcel
                 .Map(dest => dest.Buildings, src => src.Buildings)
                 .Map(dest => dest.Evaluations, src => src.Evaluations)
                 .Map(dest => dest.Fiscals, src => src.Fiscals)
-                .Inherits<BModel.BaseModel, Entity.BaseEntity>();
+                .Inherits<BModel.BaseAppModel, Entity.BaseAppEntity>();
 
             config.NewConfig<Model.BuildingParcelModel, Entity.ParcelBuilding>()
                 .EnableNonPublicMembers(true)
                 .Map(dest => dest.ParcelId, src => src.Id)
                 .Map(dest => dest.Parcel, src => src)
                 .Map(dest => dest.BuildingId, src => src.BuildingId)
-                .Inherits<BModel.BaseModel, Entity.BaseEntity>();
+                .Inherits<BModel.BaseAppModel, Entity.BaseAppEntity>();
 
             config.NewConfig<Model.ParcelModel, NetTopologySuite.Geometries.Point>()
                 .ConstructUsing(src => Dal.Helpers.GeometryHelper.CreatePoint(src.Longitude, src.Latitude));

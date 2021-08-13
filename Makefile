@@ -41,9 +41,13 @@ restart: | stop build up ## Restart local docker environment
 
 refresh: | down build up ## Recreates local docker environment
 
-up: ## Runs the local containers (n=service name)
+start up: ## Runs the local containers (n=service name)
 	@echo "$(P) Running client and server..."
 	@docker-compose up -d $(n)
+
+destroy: ## Stops the local containers and removes them (n=service name)
+	@echo "$(P) Removing docker containers..."
+	@docker-compose rm -s -f $(n)
 
 down: ## Stops the local containers and removes them
 	@echo "$(P) Stopping client and server..."
@@ -64,8 +68,11 @@ rebuild: ## Build the local contains (n=service name) and then start them after 
 clean: ## Removes all local containers, images, volumes, etc
 	@echo "$(P) Removing all containers, images, volumes for solution."
 	@docker-compose rm -f -v -s
-	@docker volume rm -f pims-frontend-node-cache
-	@docker volume rm -f pims-api-db-data
+	@docker volume rm -f psp-frontend-node-cache
+	@docker volume rm -f psp-api-db-data
+
+logs: ## Shows logs for running containers (n=service name)
+	@docker-compose logs -f $(n)
 
 setup: ## Setup local container environment, initialize keycloak and database
 	@make build; make up; make pause-30; make db-update; make db-seed; make keycloak-sync;
@@ -90,7 +97,7 @@ npm-clean: ## Removes local containers, images, volumes, for frontend applicatio
 	@echo "$(P) Removing frontend containers and volumes."
 	@docker-compose stop frontend
 	@docker-compose rm -f -v -s frontend
-	@docker volume rm -f pims-frontend-node-cache
+	@docker volume rm -f psp-frontend-node-cache
 
 npm-refresh: ## Cleans and rebuilds the frontend.  This is useful when npm packages are changed.
 	@make npm-clean; make build n=frontend; make up;
@@ -130,6 +137,10 @@ db-seed: ## Imports a JSON file of properties into PIMS
 	@echo "$(P) Seeding docker database..."
 	@cd tools/import; dotnet build; dotnet run;
 
+db-script: ## Export an SQL script from the migration (from=0 to=Initial).
+	@echo "$(P) Exporting script to 'db-migration.sql'"
+	@cd backend/dal; dotnet ef migrations script ${from} ${to} --output ../../db-migration.sql
+
 keycloak-sync: ## Syncs accounts with Keycloak and PIMS
 	@echo "$(P) Syncing keycloak with PIMS..."
 	@cd tools/keycloak/sync; dotnet build; dotnet run;
@@ -138,4 +149,26 @@ convert: ## Convert Excel files to JSON
 	@echo "$(P) Convert Excel files to JSON..."
 	@cd tools/converters/excel; dotnet build; dotnet run;
 
-.PHONY: local setup restart refresh up down stop build rebuild clean client-test server-test pause-30 server-run db-migrations db-add db-update db-rollback db-remove db-clean db-drop db-seed db-refresh npm-clean npm-refresh keycloak-sync convert
+backend-test: ## Run backend unit tests
+	@echo "$(P) Run backend unit tests"
+	@cd backend; dotnet test;
+
+frontend-test: ## Run frontend unit tests
+	@echo "$(P) Run frontend unit tests"
+	@cd frontend; npm run test:watch;
+
+backend-coverage: ## Generate coverage report for backend
+	@echo "$(P) Generate coverage report for backend"
+	@cd backend/tests/unit/api; dotnet build;
+	@cd backend/tests/unit/dal; dotnet build;
+	@cd backend; coverlet ./tests/unit/api/bin/Debug/net5.0/Pims.Api.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.json" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" -f json
+	@cd backend; coverlet ./tests/unit/dal/bin/Debug/net5.0/Pims.Dal.Test.dll --target "dotnet" --targetargs "test ./ --no-build" -o "./tests/TestResults/coverage.xml" --exclude "[*.Test]*" --exclude "[*]*Model" --exclude-by-attribute "CompilerGenerated" --merge-with "tests/TestResults/coverage.json" -f cobertura
+	@cd backend; reportgenerator "-reports:./tests/TestResults/coverage.xml" "-targetdir:./tests/TestResults/Coverage" -reporttypes:Html
+	@cd backend; start ./tests/TestResults/Coverage/index.htm
+
+frontend-coverage: ## Generate coverage report for frontend
+	@echo "$(P) Generate coverage report for frontend"
+	@cd frontend; npm run coverage;
+
+.PHONY: logs start destroy local setup restart refresh up down stop build rebuild clean client-test server-test pause-30 server-run db-migrations db-add db-update db-rollback db-remove db-clean db-drop db-seed db-refresh db-script npm-clean npm-refresh keycloak-sync convert backend-coverage frontend-coverage backend-test frontend-test
+

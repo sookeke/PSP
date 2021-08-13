@@ -1,10 +1,13 @@
-import React, { useEffect } from 'react';
 import './Check.scss';
-import { Form, FormCheckProps } from 'react-bootstrap';
-import { useFormikContext, getIn } from 'formik';
-import { DisplayError } from './DisplayError';
+
 import classNames from 'classnames';
+import { getIn, useFormikContext } from 'formik';
+import React, { useEffect } from 'react';
+import Form from 'react-bootstrap/Form';
+import { FormCheckProps } from 'react-bootstrap/FormCheck';
+
 import TooltipIcon from '../TooltipIcon';
+import { DisplayError } from './DisplayError';
 
 type RequiredAttributes = {
   /** The field name */
@@ -109,7 +112,7 @@ export const Check: React.FC<CheckProps> = ({
             isInvalid={!!touch && !!error}
             type={type}
             {...rest}
-            value={checked === true}
+            value={(checked === true) as any}
             placeholder={placeholder}
             checked={checked === true}
             onChange={() => {
@@ -134,7 +137,7 @@ export const Check: React.FC<CheckProps> = ({
               type={type}
               id={`input-${field}-2`}
               {...rest}
-              value={checked === false}
+              value={(checked === true) as any}
               placeholder={placeholder}
               checked={checked === false}
               onChange={(e: any) => {

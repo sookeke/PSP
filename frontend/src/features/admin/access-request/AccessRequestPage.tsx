@@ -1,31 +1,33 @@
-import React, { useEffect } from 'react';
 import './AccessRequestPage.scss';
-import { Container, Row, Col, ButtonToolbar, Button, Alert } from 'react-bootstrap';
-import {
-  getCurrentAccessRequestAction,
-  getSubmitAccessRequestAction,
-  toAccessRequest,
-} from 'actionCreators/accessRequestActionCreator';
-import { IUserInfo, IAccessRequest } from 'interfaces';
-import { Formik } from 'formik';
-import { Form, Input, TextArea, Select } from '../../../components/common/form';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
-import { IAccessRequestState } from 'reducers/accessRequestReducer';
+
+import { ISnackbarState, Snackbar } from 'components/common/Snackbar';
+import TooltipWrapper from 'components/common/TooltipWrapper';
+import { AccessRequestStatus } from 'constants/accessStatus';
 import * as API from 'constants/API';
 import { DISCLAIMER_URL, PRIVACY_POLICY_URL } from 'constants/strings';
-import { AccessRequestSchema } from 'utils/YupSchema';
-import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
-import { mapLookupCode } from 'utils';
-import { AccessRequestStatus } from 'constants/accessStatus';
-import { Snackbar, ISnackbarState } from 'components/common/Snackbar';
-import useCodeLookups from 'hooks/useLookupCodes';
-import TooltipWrapper from 'components/common/TooltipWrapper';
 import { AUTHORIZATION_URL } from 'constants/strings';
+import { Formik } from 'formik';
+import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+import useLookupCodeHelpers from 'hooks/useLookupCodeHelpers';
+import { IAccessRequest, IUserInfo } from 'interfaces';
+import React, { useEffect } from 'react';
+import Alert from 'react-bootstrap/Alert';
+import Button from 'react-bootstrap/Button';
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import Col from 'react-bootstrap/Col';
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import { useAppSelector } from 'store/hooks';
+import { toAccessRequest } from 'store/slices/accessRequests/accessRequestsSlice';
+import { useAccessRequests } from 'store/slices/accessRequests/useAccessRequests';
+import { mapLookupCode } from 'utils';
+import { AccessRequestSchema } from 'utils/YupSchema';
+
+import { Form, Input, Select, TextArea } from '../../../components/common/form';
 
 interface IAccessRequestForm extends IAccessRequest {
-  agency: number;
-  role: string;
+  agency?: number;
+  role?: number;
 }
 
 /**
@@ -38,27 +40,26 @@ const AccessRequestPage = () => {
   const keycloakWrapper = useKeycloakWrapper();
   const keycloak = keycloakWrapper.obj;
   const userInfo = keycloak?.userInfo as IUserInfo;
-  const dispatch = useDispatch();
+  const { fetchCurrentAccessRequest, addAccessRequest } = useAccessRequests();
   const [alert, setAlert] = React.useState<ISnackbarState>({});
 
   useEffect(() => {
-    dispatch(getCurrentAccessRequestAction());
-  }, [dispatch]);
+    fetchCurrentAccessRequest();
+  }, [fetchCurrentAccessRequest]);
 
-  const data = useSelector<RootState, IAccessRequestState>(
-    state => state.accessRequest as IAccessRequestState,
-  );
+  const data = useAppSelector(state => state.accessRequests);
 
-  const { getByType, getPublicByType } = useCodeLookups();
-  const agencies = getByType(API.AGENCY_CODE_SET_NAME);
+  const { getPublicByType } = useLookupCodeHelpers();
   const roles = getPublicByType(API.ROLE_CODE_SET_NAME);
+  const agencies = getPublicByType(API.AGENCY_CODE_SET_NAME);
 
   const accessRequest = data?.accessRequest;
   const initialValues: IAccessRequestForm = {
     id: accessRequest?.id ?? 0,
-    userId: userInfo?.sub,
+    userId: userInfo?.id,
     user: {
-      id: userInfo?.sub,
+      id: userInfo?.id,
+      key: userInfo?.key,
       username: userInfo?.username,
       displayName: userInfo?.name,
       firstName: userInfo?.firstName,
@@ -70,23 +71,12 @@ const AccessRequestPage = () => {
     status: accessRequest?.status || AccessRequestStatus.OnHold,
     roles: accessRequest?.roles ?? [],
     note: accessRequest?.note ?? '',
-    agency: accessRequest?.agencies?.find(x => x).id,
-    role: accessRequest?.roles?.find(x => x).id,
+    agency: agencies?.find(a => a.code === 'TRAN')?.id, // Select TRAN as the default agency for all access requests.
+    role: accessRequest?.roles?.find(role => role)?.id,
     rowVersion: accessRequest?.rowVersion,
   };
 
-  const selectAgencies = agencies.map(c => mapLookupCode(c, initialValues.agency));
   const selectRoles = roles.map(c => mapLookupCode(c, initialValues.role));
-
-  const checkAgencies = (
-    <Select
-      label="Agency"
-      field="agency"
-      required={true}
-      options={selectAgencies}
-      placeholder={initialValues?.agencies?.length > 0 ? undefined : 'Please Select'}
-    />
-  );
 
   const checkRoles = (
     <Form.Group className="check-roles">
@@ -135,7 +125,7 @@ const AccessRequestPage = () => {
             validationSchema={AccessRequestSchema}
             onSubmit={async (values, { setSubmitting }) => {
               try {
-                await dispatch(getSubmitAccessRequestAction(toAccessRequest(values)));
+                await addAccessRequest(toAccessRequest(values));
                 setAlert({
                   variant: 'success',
                   message: 'Your request has been submitted.',
@@ -191,8 +181,6 @@ const AccessRequestPage = () => {
                   readOnly={true}
                   type="email"
                 />
-
-                {checkAgencies}
 
                 <Input
                   label="Position"

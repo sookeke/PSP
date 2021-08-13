@@ -2,12 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Pims.Core.Extensions;
 using Pims.Dal.Entities;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
 using Pims.Dal.Entities.Models;
 using Pims.Dal.Helpers.Extensions;
 using Pims.Dal.Security;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
 
 namespace Pims.Dal.Services.Admin
 {
@@ -60,7 +60,7 @@ namespace Pims.Dal.Services.Admin
                 if (filter.Page < 1) filter.Page = 1;
                 if (filter.Quantity < 1) filter.Quantity = 1;
                 if (filter.Quantity > 50) filter.Quantity = 50;
-                if (filter.Sort == null) filter.Sort = new string[] { };
+                if (filter.Sort == null) filter.Sort = System.Array.Empty<string>();
 
                 if (!string.IsNullOrWhiteSpace(filter.Name))
                     query = query.Where(a => EF.Functions.Like(a.Name, $"%{filter.Name}%"));
@@ -95,9 +95,19 @@ namespace Pims.Dal.Services.Admin
         /// <param name="id"></param>
         /// <exception cref="KeyNotFoundException">Agency does not exists for the specified 'id'.</exception>
         /// <returns></returns>
-        public Agency Get(int id)
+        public Agency Get(long id)
         {
             return this.Context.Agencies.Find(id) ?? throw new KeyNotFoundException();
+        }
+
+        /// <summary>
+        /// Get all the child agencies for the specified 'parentId'.
+        /// </summary>
+        /// <param name="parentId"></param>
+        /// <returns></returns>
+        public IEnumerable<Agency> GetChildren(long parentId)
+        {
+            return this.Context.Agencies.Where(a => a.ParentId == parentId);
         }
 
         /// <summary>
@@ -121,8 +131,8 @@ namespace Pims.Dal.Services.Admin
             // This means we need to return a list of users that need to be updated in Keycloak.
             if (agency.ParentId.HasValue)
             {
-                var users = this.Context.Users.AsNoTracking().Where(u => u.Agencies.Any(a => a.AgencyId == agency.ParentId)).ToArray();
-                users.ForEach(u => agency.Users.Add(new UserAgency(u, agency)));
+                var users = this.Context.Users.AsNoTracking().Where(u => u.Agencies.Any(a => a.Id == agency.ParentId)).ToArray();
+                users.ForEach(u => agency.Users.Add(u));
             }
         }
 
@@ -150,18 +160,18 @@ namespace Pims.Dal.Services.Admin
             if (original.ParentId.HasValue && !agency.ParentId.HasValue)
             {
                 // This agency has become a parent agency, all users associated with it through a parent-agency need to be removed.
-                updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.AgencyId == original.ParentId)));
+                updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.Id == original.ParentId)));
             }
             else if (!original.ParentId.HasValue && agency.ParentId.HasValue)
             {
                 // This agency has become a sub-agency, all original users need their list of agencies reduced to only this agency.
-                updatedUsers.AddRange(this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.AgencyId == agency.ParentId)));
+                updatedUsers.AddRange(this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.Id == agency.ParentId)));
             }
             else if (original.ParentId != agency.ParentId)
             {
                 // Remove the sub-agency from currently linked users and add it to the users who belong to the new parent agency.
-                updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.AgencyId == original.ParentId)));
-                updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.AgencyId == agency.ParentId)));
+                updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.Id == original.ParentId)));
+                updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.Id == agency.ParentId)));
             }
 
             if (original.IsDisabled != agency.IsDisabled)
@@ -171,13 +181,13 @@ namespace Pims.Dal.Services.Admin
                 {
                     // Remove the sub-agency from users.
                     // Or add the sub-agency to users who are associated with the parent.
-                    updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.AgencyId == agency.ParentId)));
+                    updatedUsers.AddRange(this.Context.Users.Where(u => u.Agencies.Any(a => a.Id == agency.ParentId)));
                 }
                 else if (!agency.ParentId.HasValue && agency.IsDisabled)
                 {
                     // Remove the agency from the users.
                     // This will result in the user not belonging to an agency.
-                    var users = this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.AgencyId == agency.Id));
+                    var users = this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.Id == agency.Id));
                     users.ForEach(u => u.Agencies.Clear());
                     updatedUsers.AddRange(users);
                     this.Context.UpdateRange(users);
@@ -192,7 +202,7 @@ namespace Pims.Dal.Services.Admin
             updatedUsers.Distinct().ForEach(u =>
             {
                 this.Context.Entry(u).State = EntityState.Detached;
-                agency.Users.Add(new UserAgency(u, agency));
+                agency.Users.Add(u);
             });
         }
 
@@ -218,12 +228,12 @@ namespace Pims.Dal.Services.Admin
             // This means we need to return a list of users that need to be updated in Keycloak.
             if (original.ParentId.HasValue)
             {
-                var users = this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.AgencyId == agency.ParentId));
+                var users = this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.Id == agency.ParentId));
                 updateUsers.AddRange(users);
             }
             else
             {
-                var users = this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.AgencyId == agency.Id));
+                var users = this.Context.Users.Include(u => u.Agencies).Where(u => u.Agencies.Any(a => a.Id == agency.Id));
                 users.ForEach(u => u.Agencies.Clear());
                 this.Context.Users.UpdateRange(users);
                 updateUsers.AddRange(users);
@@ -237,7 +247,7 @@ namespace Pims.Dal.Services.Admin
             updateUsers.ForEach(u =>
             {
                 this.Context.Entry(u).State = EntityState.Detached;
-                agency.Users.Add(new UserAgency(u, agency));
+                agency.Users.Add(u);
             });
         }
         #endregion

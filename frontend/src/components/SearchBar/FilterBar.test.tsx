@@ -1,19 +1,12 @@
 import React from 'react';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
-import FilterBar from './FilterBar';
 import { create } from 'react-test-renderer';
 
-Enzyme.configure({ adapter: new Adapter() });
+import FilterBar from './FilterBar';
 
 const componentRender = () => {
   let component = create(
     <div>
-      <FilterBar
-        initialValues={{ username: 'test', firstName: 'user' }}
-        onReset={() => {}}
-        onSearch={() => {}}
-      />
+      <FilterBar initialValues={{ username: 'test', firstName: 'user' }} onChange={() => {}} />
     </div>,
   );
   return component;

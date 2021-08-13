@@ -1,7 +1,6 @@
-import * as React from 'react';
 import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
-import { useSelector } from 'react-redux';
-import { RootState } from 'reducers/rootReducer';
+import * as React from 'react';
+import { useAppSelector } from 'store/hooks';
 
 export interface IAuthState {
   ready?: boolean;
@@ -14,20 +13,20 @@ export const AuthStateContext = React.createContext<IAuthState>({
 export const AuthStateContextProvider = (props: { children?: any }) => {
   const keycloak = useKeycloakWrapper();
   const [userInfo, setUserInfo] = React.useState<any>(null);
-  const keycloakReady: boolean = useSelector<RootState, boolean>(state => state.keycloakReady);
+  const keycloakReady: boolean = useAppSelector(state => state.keycloakReady);
 
   React.useEffect(() => {
     const loadUserInfo = async () => {
-      const user = await keycloak.obj?.loadUserInfo();
-      setUserInfo(user);
+      try {
+        const user = await keycloak.obj?.loadUserInfo();
+        setUserInfo(user);
+      } catch (err) {
+        // this error isn't recoverable, so just log it for debugging purposes.
+        console.error(err);
+      }
     };
 
-    try {
-      if (keycloak.obj.authenticated) loadUserInfo();
-    } catch (err) {
-      // this error isn't recoverable, so just log it for debugging purposes.
-      console.error(err);
-    }
+    if (keycloak.obj.authenticated) loadUserInfo();
   }, [keycloak.obj]);
 
   return (

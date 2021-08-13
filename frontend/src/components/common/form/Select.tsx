@@ -1,9 +1,12 @@
-import React from 'react';
-import { Form, FormControlProps } from 'react-bootstrap';
-import { useFormikContext, getIn } from 'formik';
-import { DisplayError } from './DisplayError';
-import classNames from 'classnames';
 import './Select.scss';
+
+import classNames from 'classnames';
+import { getIn, useFormikContext } from 'formik';
+import React from 'react';
+import Form from 'react-bootstrap/Form';
+import { FormControlProps } from 'react-bootstrap/FormControl';
+
+import { DisplayError } from './DisplayError';
 
 type RequiredAttributes = {
   /** The field name */

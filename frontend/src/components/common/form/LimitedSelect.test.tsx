@@ -1,17 +1,16 @@
+import { Classifications } from 'constants/classifications';
+import { mount } from 'enzyme';
+import { getIn, useFormikContext } from 'formik';
 import React from 'react';
 import renderer from 'react-test-renderer';
-import { mount } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
-import { useFormikContext, getIn } from 'formik';
+
 import { FastSelect } from './FastSelect';
 
 jest.mock('formik');
-Enzyme.configure({ adapter: new Adapter() });
 
 (useFormikContext as jest.Mock).mockReturnValue({
   values: {
-    classificationId: 0,
+    classificationId: Classifications.CoreOperational,
     classification: 'zero',
   },
   registerField: jest.fn(),

@@ -1,9 +1,9 @@
-import * as React from 'react';
-import { Formik } from 'formik';
-import { Form } from 'react-bootstrap';
 import { Input, TextArea } from 'components/common/form';
+import { Formik } from 'formik';
 import { noop } from 'lodash';
-import { pimsSupportEmail } from '../constants/HelpText';
+import * as React from 'react';
+import Form from 'react-bootstrap/Form';
+
 import { IHelpForm } from '../interfaces';
 
 interface FeatureRequestFormProps {
@@ -37,8 +37,10 @@ const FeatureRequestForm: React.FunctionComponent<FeatureRequestFormProps> = ({
       onSubmit={noop}
       validateOnMount={true}
       validate={(values: any) => {
-        const body = values.description;
-        const mailto = `mailto:${pimsSupportEmail}?subject=Feature Request - ${formValues.page}&body=${body}`;
+        const mailto = {
+          subject: `Feature Request - ${formValues.page}`,
+          body: values.description,
+        };
         setMailto(mailto);
       }}
     >

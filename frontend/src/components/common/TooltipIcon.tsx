@@ -1,8 +1,11 @@
-import React from 'react';
 import './TooltipIcon.scss';
-import { OverlayTrigger, Tooltip, Overlay } from 'react-bootstrap';
-import { FaInfoCircle } from 'react-icons/fa';
+
 import classNames from 'classnames';
+import React from 'react';
+import Overlay from 'react-bootstrap/Overlay';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
+import { FaInfoCircle } from 'react-icons/fa';
 
 interface TooltipIconProps extends Partial<React.ComponentPropsWithRef<typeof Overlay>> {
   toolTip?: string;
@@ -15,7 +18,9 @@ const TooltipIcon = (props: TooltipIconProps) => (
     placement={props.placement}
     overlay={<Tooltip id={props.toolTipId}>{props.toolTip}</Tooltip>}
   >
-    <FaInfoCircle className={classNames('tooltip-icon', props.className)} />
+    <span data-testid="tooltip-icon">
+      <FaInfoCircle className={classNames('tooltip-icon', props.className)} />
+    </span>
   </OverlayTrigger>
 );
 

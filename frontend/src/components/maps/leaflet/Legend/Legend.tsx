@@ -1,6 +1,10 @@
-import * as React from 'react';
-import { Row, Col, Card, Image } from 'react-bootstrap';
 import './Legend.scss';
+
+import React from 'react';
+import Card from 'react-bootstrap/Card';
+import Col from 'react-bootstrap/Col';
+import Image from 'react-bootstrap/Image';
+import Row from 'react-bootstrap/Row';
 
 export const Legend = () => {
   const keys = React.useMemo(() => {
@@ -16,14 +20,6 @@ export const Legend = () => {
       {
         pin: require('assets/images/pins/subdiv-reg.png').default,
         label: 'Proposed Subdivision',
-      },
-      {
-        pin: require('assets/images/pins/marker-red.png').default,
-        label: 'Enhanced Referral Process',
-      },
-      {
-        pin: require('assets/images/pins/marker-purple.png').default,
-        label: 'Surplus Properties List',
       },
     ];
   }, []);

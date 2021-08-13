@@ -1,22 +1,36 @@
-import React from 'react';
+import { useKeycloak } from '@react-keycloak/web';
+import { cleanup, fireEvent, render, waitFor } from '@testing-library/react';
+import axios from 'axios';
+import MockAdapter from 'axios-mock-adapter';
+import * as actionTypes from 'constants/actionTypes';
+import * as API from 'constants/API';
+import { Formik } from 'formik';
 import { createMemoryHistory } from 'history';
-import { Router } from 'react-router-dom';
+import { noop } from 'lodash';
+import moment from 'moment-timezone';
+import React from 'react';
+import { act } from 'react-dom/test-utils';
 import { Provider } from 'react-redux';
+import { Router } from 'react-router-dom';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { ILookupCode } from 'actions/lookupActions';
-import * as actionTypes from 'constants/actionTypes';
-import * as reducerTypes from 'constants/reducerTypes';
-import * as API from 'constants/API';
+import { ILookupCode, lookupCodesSlice } from 'store/slices/lookupCodes';
+import { networkSlice } from 'store/slices/network/networkSlice';
+import { usersSlice } from 'store/slices/users';
+import { fillInput } from 'utils/test-utils';
+
 import { ManageUsers } from './ManageUsers';
-import { cleanup, fireEvent, render, wait } from '@testing-library/react';
-import moment from 'moment-timezone';
-import { Formik } from 'formik';
-import { noop } from 'lodash';
-import { act } from 'react-dom/test-utils';
-import MockAdapter from 'axios-mock-adapter';
-import axios from 'axios';
-import { fillInput } from 'utils/testUtils';
+
+jest.mock('@react-keycloak/web');
+(useKeycloak as jest.Mock).mockReturnValue({
+  keycloak: {
+    userInfo: {
+      agencies: [1],
+      roles: [],
+    },
+    subject: 'test',
+  },
+});
 
 const history = createMemoryHistory();
 history.push('admin');
@@ -24,10 +38,10 @@ const mockStore = configureMockStore([thunk]);
 
 const lCodes = {
   lookupCodes: [
-    { name: 'agencyVal', id: '1', isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
-    { name: 'disabledAgency', id: '2', isDisabled: true, type: API.AGENCY_CODE_SET_NAME },
-    { name: 'roleVal', id: '1', isDisabled: false, type: API.ROLE_CODE_SET_NAME },
-    { name: 'disabledRole', id: '2', isDisabled: true, type: API.ROLE_CODE_SET_NAME },
+    { id: 1, name: 'agencyVal', code: '', isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
+    { id: 2, name: 'disabledAgency', code: '', isDisabled: true, type: API.AGENCY_CODE_SET_NAME },
+    { id: 1, name: 'roleVal', code: '', isDisabled: false, type: API.ROLE_CODE_SET_NAME },
+    { id: 2, name: 'disabledRole', code: '', isDisabled: true, type: API.ROLE_CODE_SET_NAME },
   ] as ILookupCode[],
 };
 const mockAxios = new MockAdapter(axios);
@@ -38,32 +52,32 @@ jest.mock('react-router-dom', () => ({
 }));
 const getStore = (includeDate?: boolean) =>
   mockStore({
-    [reducerTypes.USERS]: {
+    [usersSlice.name]: {
       pagedUsers: {
         pageIndex: 0,
         total: 2,
         quantity: 2,
         items: [
           {
-            id: '1',
+            id: 1,
             username: 'testername1',
             firstName: 'testUserFirst1',
             lastName: 'testUserLast1',
             isDisabled: false,
             position: 'tester position',
-            agencies: [{ id: '1', name: 'HLTH' }],
-            roles: [{ id: '1', name: 'admin' }],
+            agencies: [{ id: 1, name: 'HLTH' }],
+            roles: [{ id: 1, name: 'admin' }],
             lastLogin: includeDate ? '2020-10-14T17:45:39.7381599' : null,
           },
           {
-            id: '2',
+            id: 2,
             username: 'testername2',
             firstName: 'testUser',
             lastName: 'testUser',
             isDisabled: true,
             position: 'tester',
-            agencies: [{ id: '1', name: 'HLTH' }],
-            roles: [{ id: '1', name: 'admin' }],
+            agencies: [{ id: 1, name: 'HLTH' }],
+            roles: [{ id: 1, name: 'admin' }],
             lastLogin: includeDate ? '2020-10-14T17:46:39.7381599' : null,
           },
         ],
@@ -71,8 +85,8 @@ const getStore = (includeDate?: boolean) =>
       filter: { firstName: '' },
       rowsPerPage: 10,
     },
-    [reducerTypes.LOOKUP_CODE]: lCodes,
-    [reducerTypes.NETWORK]: {
+    [lookupCodesSlice.name]: lCodes,
+    [networkSlice.name]: {
       [actionTypes.GET_USERS]: {
         isFetching: false,
       },
@@ -113,7 +127,7 @@ describe('Manage Users Component', () => {
     const { getByRole, container } = testRender(getStore());
     const agency = container.querySelector('input[name="agency"]');
 
-    await wait(() => {
+    await waitFor(() => {
       fireEvent.change(agency!, {
         target: {
           value: 'age',
@@ -150,7 +164,7 @@ describe('Manage Users Component', () => {
     act(() => {
       fireEvent.click(excelIcon);
     });
-    await wait(() => {
+    await waitFor(() => {
       expect(mockAxios.history.get.length).toBe(1);
     });
   });
@@ -163,7 +177,7 @@ describe('Manage Users Component', () => {
     act(() => {
       fireEvent.click(searchButton!);
     });
-    await wait(() => {
+    await waitFor(() => {
       expect(mockAxios.history.post.length).toBe(1);
     });
   });

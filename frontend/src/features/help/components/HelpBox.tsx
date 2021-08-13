@@ -1,8 +1,11 @@
-import * as React from 'react';
-import { ButtonGroup, Button } from 'react-bootstrap';
-import styled from 'styled-components';
-import { getTopics } from '../constants/HelpText';
 import './HelpBox.scss';
+
+import * as React from 'react';
+import Button from 'react-bootstrap/Button';
+import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import styled from 'styled-components';
+
+import { getTopics } from '../constants/HelpText';
 import { IHelpPage, Topics } from '../interfaces';
 
 interface IHelpBoxProps {

@@ -149,7 +149,7 @@ namespace Pims.Api.Helpers.Middleware
             else if (ex is ApiHttpRequestException)
             {
                 var exception = ex as ApiHttpRequestException;
-                code = exception.StatusCode;
+                code = exception.StatusCode ?? HttpStatusCode.InternalServerError;
                 message = ex.Message;
 
                 try
@@ -169,16 +169,25 @@ namespace Pims.Api.Helpers.Middleware
             else if (ex is ChesException)
             {
                 var exception = ex as ChesException;
-                code = exception.StatusCode;
+                code = exception.StatusCode ?? HttpStatusCode.InternalServerError;
                 message = exception.Message;
                 details = exception.Detail;
 
                 _logger.LogError(ex, "CHES unhandled exception.");
             }
+            else if (ex is LtsaException)
+            {
+                var exception = ex as LtsaException;
+                code = exception.StatusCode.Value;
+                message = exception.Message;
+                details = exception.Detail;
+
+                _logger.LogError(ex, "Ltsa unhandled exception.");
+            }
             else if (ex is HttpClientRequestException || ex is ProxyRequestException)
             {
                 var exception = ex as HttpClientRequestException;
-                code = exception.StatusCode;
+                code = exception.StatusCode ?? HttpStatusCode.InternalServerError;
                 message = ex.Message;
 
                 try

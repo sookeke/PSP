@@ -1,13 +1,13 @@
 using Mapster;
-using Pims.Api.Mapping.Converters;
-using Entity = Pims.Dal.Entities;
-using Model = Pims.Api.Areas.Property.Models.Building;
-using BModel = Pims.Api.Models;
-using Pims.Dal.Helpers.Extensions;
-using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Pims.Api.Mapping.Converters;
+using Pims.Dal.Helpers.Extensions;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
+using BModel = Pims.Api.Models;
+using Entity = Pims.Dal.Entities;
+using Model = Pims.Api.Areas.Property.Models.Building;
 
 namespace Pims.Api.Areas.Property.Mapping.Building
 {
@@ -32,9 +32,8 @@ namespace Pims.Api.Areas.Property.Mapping.Building
         {
             config.NewConfig<Entity.Building, Model.BuildingModel>()
                 .Map(dest => dest.Id, src => src.Id)
+                .Map(dest => dest.PropertyTypeId, src => src.PropertyTypeId)
                 .Map(dest => dest.ParcelId, src => src.GetParcelId())
-                .Map(dest => dest.ProjectWorkflow, src => src.GetLatestWorkflowCode())
-                .Map(dest => dest.ProjectStatus, src => src.GetLatestProjectStatus())
                 .Map(dest => dest.ProjectNumbers, src => JsonSerializer.Deserialize<IEnumerable<string>>(src.ProjectNumbers ?? "[]", _serializerOptions))
                 .Map(dest => dest.ClassificationId, src => src.ClassificationId)
                 .Map(dest => dest.Classification, src => src.Classification.Name)
@@ -77,7 +76,7 @@ namespace Pims.Api.Areas.Property.Mapping.Building
 
                     dest.LeasedLandMetadata = metadata.Where(m => m != null).Select(l => new Model.LeasedLandMetadataModel { OwnershipNote = l.OwnershipNote, ParcelId = l.ParcelId, Type = (int)l.Type });
                 })
-                .Inherits<Entity.BaseEntity, BModel.BaseModel>();
+                .Inherits<Entity.BaseAppEntity, BModel.BaseAppModel>();
 
             config.NewConfig<Model.BuildingModel, Entity.Building>()
                 .Map(dest => dest.Id, src => src.Id)
@@ -110,7 +109,7 @@ namespace Pims.Api.Areas.Property.Mapping.Building
 
                     dest.LeasedLandMetadata = metadata;
                 })
-                .Inherits<BModel.BaseModel, Entity.BaseEntity>();
+                .Inherits<BModel.BaseAppModel, Entity.BaseAppEntity>();
 
             config.NewConfig<Model.BuildingModel, NetTopologySuite.Geometries.Point>()
                 .ConstructUsing(src => Dal.Helpers.GeometryHelper.CreatePoint(src.Longitude, src.Latitude));

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Pims.Api.Areas.Property.Controllers;
-using SModel = Pims.Api.Areas.Property.Models.Search;
 using Pims.Api.Helpers.Exceptions;
 using Pims.Core.Comparers;
 using Pims.Core.Extensions;
@@ -17,6 +16,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Xunit;
 using Entity = Pims.Dal.Entities;
+using SModel = Pims.Api.Areas.Property.Models.Search;
 
 namespace Pims.Api.Test.Controllers.Property
 {
@@ -27,21 +27,21 @@ namespace Pims.Api.Test.Controllers.Property
     public class SearchControllerTest
     {
         #region Variables
-        public static IEnumerable<object[]> AllPropertiesFilters = new List<object[]>()
+        public readonly static IEnumerable<object[]> AllPropertiesFilters = new List<object[]>()
         {
             new object [] { new SModel.PropertyFilterModel(100, 0, 0, 0), false, false },
             new object [] { new SModel.PropertyFilterModel(0, 100, 0, 0), false, false },
             new object [] { new SModel.PropertyFilterModel(0, 0, 10, 0), false, false },
             new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10), false, false },
             new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { Address = "Address" }, false, false },
-            new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { Agencies = new [] { 1 } }, false, false },
+            new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { Agencies = new long[] { 1 } }, false, false },
             new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { StatusId = 1 }, true, true },
             new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { ClassificationId = 1 }, true, true },
             new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { ProjectNumber = "ProjectNumber" }, true, true },
             new object [] { new SModel.PropertyFilterModel(0, 0, 0, 10) { AdministrativeArea = "AdministrativeArea" }, true, true }
         };
 
-        public static IEnumerable<object[]> ParcelOnlyFilters = new List<object[]>()
+        public readonly static IEnumerable<object[]> ParcelOnlyFilters = new List<object[]>()
         {
             new [] { new SModel.PropertyFilterModel(100, 100, 0, 0) { MinLotArea = 1 } },
             new [] { new SModel.PropertyFilterModel(100, 100, 0, 0) { MaxLotArea = 1 } },
@@ -49,7 +49,7 @@ namespace Pims.Api.Test.Controllers.Property
             new [] { new SModel.PropertyFilterModel(100, 100, 0, 0) { MaxLandArea = 1 } }
         };
 
-        public static IEnumerable<object[]> BuildingOnlyFilters = new List<object[]>()
+        public readonly static IEnumerable<object[]> BuildingOnlyFilters = new List<object[]>()
         {
             new [] { new SModel.PropertyFilterModel(100, 100, 0, 0) { ConstructionTypeId = 1 } },
             new [] { new SModel.PropertyFilterModel(100, 100, 0, 0) { PredominateUseId = 1 } },
@@ -59,7 +59,7 @@ namespace Pims.Api.Test.Controllers.Property
             new [] { new SModel.PropertyFilterModel(100, 100, 0, 0) { MaxRentableArea = 1 } }
         };
 
-        public static IEnumerable<object[]> PropertyQueryFilters = new List<object[]>()
+        public readonly static IEnumerable<object[]> PropertyQueryFilters = new List<object[]>()
         {
             new object [] { new Uri("http://host/api/properties?Agencies=1,2"), true, true },
             new object [] { new Uri("http://host/api/properties?StatusId=2"), true, true },
@@ -101,17 +101,14 @@ namespace Pims.Api.Test.Controllers.Property
 
             var parcel = new Entity.Parcel(1, 51, 25);
             var parcels = new[] { parcel };
-            var building = new Entity.Building(parcel, 51, 25)
-            {
-                PropertyTypeId = 1
-            };
+            var building = new Entity.Building(parcel, 51, 25);
             var buildings = new[] { building };
 
             var service = helper.GetService<Mock<IPimsService>>();
             var mapper = helper.GetService<IMapper>();
 
             var items = parcels.Select(p => new Entity.Views.Property(p))
-                .Concat(buildings.Select(b => new Entity.Views.Property(b))).Select(x => new ProjectProperty(x));
+                .Concat(buildings.Select(b => new Entity.Views.Property(b)));
             service.Setup(m => m.Property.Get(It.IsAny<AllPropertyFilter>())).Returns(items);
 
             // Act
@@ -145,7 +142,7 @@ namespace Pims.Api.Test.Controllers.Property
             var service = helper.GetService<Mock<IPimsService>>();
             var mapper = helper.GetService<IMapper>();
 
-            var items = parcels.Select(p => new ProjectProperty(new Entity.Views.Property(p)));
+            var items = parcels.Select(p => new Entity.Views.Property(p));
             service.Setup(m => m.Property.Get(It.IsAny<AllPropertyFilter>())).Returns(items);
 
             // Act
@@ -177,7 +174,7 @@ namespace Pims.Api.Test.Controllers.Property
             var service = helper.GetService<Mock<IPimsService>>();
             var mapper = helper.GetService<IMapper>();
 
-            var items = buildings.Select(p => new ProjectProperty(new Entity.Views.Property(p)));
+            var items = buildings.Select(p => new Entity.Views.Property(p));
             service.Setup(m => m.Property.Get(It.IsAny<AllPropertyFilter>())).Returns(items);
 
             // Act
@@ -197,7 +194,6 @@ namespace Pims.Api.Test.Controllers.Property
         [Theory]
         [MemberData(nameof(PropertyQueryFilters))]
         [SuppressMessage("Usage", "xUnit1026:Theory methods should use all of their parameters", Justification = "Not required for this test.")]
-        [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Not required for this test.")]
         public void GetProperties_Query_Success(Uri uri, bool includeParcels, bool includeBuildings)
         {
             // Arrange
@@ -215,8 +211,8 @@ namespace Pims.Api.Test.Controllers.Property
             var service = helper.GetService<Mock<IPimsService>>();
             var mapper = helper.GetService<IMapper>();
 
-            var items = parcels.Select(p => new ProjectProperty(new Entity.Views.Property(p)))
-                .Concat(buildings.Select(b => new ProjectProperty(new Entity.Views.Property(b))));
+            var items = parcels.Select(p => new Entity.Views.Property(p))
+                .Concat(buildings.Select(b => new Entity.Views.Property(b)));
             service.Setup(m => m.Property.Get(It.IsAny<AllPropertyFilter>())).Returns(items);
 
             // Act

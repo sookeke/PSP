@@ -1,20 +1,33 @@
-import React from 'react';
+import { useKeycloak } from '@react-keycloak/web';
+import { AccessRequestStatus } from 'constants/accessStatus';
+import * as actionTypes from 'constants/actionTypes';
+import * as API from 'constants/API';
+import { Formik } from 'formik';
 import { createMemoryHistory } from 'history';
-import Adapter from 'enzyme-adapter-react-16';
-import Enzyme from 'enzyme';
+import { noop } from 'lodash';
+import React from 'react';
 import { Provider } from 'react-redux';
+import { Router } from 'react-router-dom';
+import { create, ReactTestInstance } from 'react-test-renderer';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { ILookupCode } from 'actions/lookupActions';
-import * as actionTypes from 'constants/actionTypes';
-import * as reducerTypes from 'constants/reducerTypes';
-import * as API from 'constants/API';
+import { accessRequestsSlice } from 'store/slices/accessRequests';
+import { ILookupCode, lookupCodesSlice } from 'store/slices/lookupCodes';
+import { networkSlice } from 'store/slices/network/networkSlice';
+import { TenantProvider } from 'tenants';
+
 import ManageAccessRequests from './ManageAccessRequests';
-import { create, ReactTestInstance } from 'react-test-renderer';
-import { AccessRequestStatus } from 'constants/accessStatus';
-import { Router } from 'react-router-dom';
-import { Formik } from 'formik';
-import { noop } from 'lodash';
+
+jest.mock('@react-keycloak/web');
+(useKeycloak as jest.Mock).mockReturnValue({
+  keycloak: {
+    userInfo: {
+      agencies: [1],
+      roles: [],
+    },
+    subject: 'test',
+  },
+});
 
 const accessRequests = {
   page: 1,
@@ -38,16 +51,14 @@ const accessRequests = {
   ],
 };
 
-Enzyme.configure({ adapter: new Adapter() });
-
 const history = createMemoryHistory();
 history.push('admin');
 const mockStore = configureMockStore([thunk]);
 
 const lCodes = {
   lookupCodes: [
-    { name: 'agencyVal', id: '1', isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
-    { name: 'roleVal', id: '1', isDisabled: false, type: API.ROLE_CODE_SET_NAME },
+    { name: 'agencyVal', id: 1, isDisabled: false, type: API.AGENCY_CODE_SET_NAME },
+    { name: 'roleVal', id: 1, isDisabled: false, type: API.ROLE_CODE_SET_NAME },
   ] as ILookupCode[],
 };
 
@@ -57,34 +68,37 @@ jest.mock('react-router-dom', () => ({
 }));
 
 const successStore = mockStore({
-  [reducerTypes.ACCESS_REQUEST]: {
+  [accessRequestsSlice.name]: {
     pageSize: 10,
     filter: { searchText: '', role: '', agency: '' },
     pagedAccessRequests: accessRequests,
   },
-  [reducerTypes.NETWORK]: {
+  [networkSlice.name]: {
     [actionTypes.GET_REQUEST_ACCESS]: {
       isFetching: false,
     },
   },
-  [reducerTypes.LOOKUP_CODE]: lCodes,
+  [lookupCodesSlice.name]: lCodes,
 });
 
 const componentRender = (store: any) => {
+  process.env.REACT_APP_TENANT = 'MOTI';
   let component = create(
-    <Formik initialValues={{}} onSubmit={noop}>
-      <Router history={history}>
-        <Provider store={store}>
-          <ManageAccessRequests />
-        </Provider>
-      </Router>
-    </Formik>,
+    <TenantProvider>
+      <Formik initialValues={{}} onSubmit={noop}>
+        <Router history={history}>
+          <Provider store={store}>
+            <ManageAccessRequests />
+          </Provider>
+        </Router>
+      </Formik>
+    </TenantProvider>,
   );
   return component;
 };
 
 describe('Manage access requests', () => {
-  afterEach(() => jest.resetAllMocks());
+  afterEach(() => jest.restoreAllMocks());
   it('Snapshot matches', () => {
     const component = componentRender(successStore);
     expect(component.toJSON()).toMatchSnapshot();

@@ -1,12 +1,12 @@
-import React from 'react';
-import { useFormikContext } from 'formik';
 import { FastCurrencyInput } from 'components/common/form/FastCurrencyInput';
-import { IProperty } from 'actions/parcelsActions';
+import TooltipWrapper from 'components/common/TooltipWrapper';
+import { useFormikContext } from 'formik';
+import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
+import { IProperty } from 'interfaces';
+import React from 'react';
+import Form from 'react-bootstrap/Form';
 import { CellProps } from 'react-table';
 import { formatMoney } from 'utils';
-import useKeycloakWrapper from 'hooks/useKeycloakWrapper';
-import TooltipWrapper from 'components/common/TooltipWrapper';
-import { Form } from 'react-bootstrap';
 
 interface IEditableCellProps {
   namespace: string;
@@ -35,7 +35,7 @@ export const EditableMoneyCell = ({
   ) : (
     <TooltipWrapper
       toolTipId={`${namespace}.${cell.row.id}.${cell.column.id}`}
-      toolTip="You may only edit a property if it belongs to your agency and it is not part of an SPP Project."
+      toolTip="You may only edit a property if it belongs to your agency."
     >
       <i>{cell.value === undefined || cell.value === '' ? '' : formatMoney(cell.value)}</i>
     </TooltipWrapper>

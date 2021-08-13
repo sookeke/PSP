@@ -10,11 +10,11 @@ Update the configuration file and set the appropriate parameters.
 **Example**
 
 ```conf
-BUILDIMAGE_NAME=nodejs-10-rhel7
-BUILDIMAGE_TAG=1-30
+BUILDIMAGE_NAME=nodejs-14-ubi8
+BUILDIMAGE_TAG=1-35
 RUNTIMEIMAGE_NAME=nginx-runtime
-RUNTIMEIMAGE_TAG=latest
-GIT_URL=https://github.com/bcgov/PIMS.git
+RUNTIMEIMAGE_TAG=dev
+GIT_URL=https://github.com/bcgov/PSP.git
 GIT_REF=dev
 SOURCE_CONTEXT_DIR=frontend
 OUTPUT_IMAGE_TAG=latest
@@ -22,10 +22,22 @@ CPU_LIMIT=1
 MEMORY_LIMIT=6Gi
 ```
 
-Create the api build and save the template.
+:warning: **IMPORTANT -** The RUNTIMEIMAGE_TAG parameter **must match** the nginx-runtime image for the environment you are setting up (DEV, TEST or UAT)
+
+```conf
+# build.test.env
+RUNTIMEIMAGE_TAG=test
+
+# build.uat.env
+RUNTIMEIMAGE_TAG=uat
+```
+
+> Note that we don't have a `build.prod.env` here. That's because the PROD environment gets updated by tagging a properly tested and vetted UAT image instead of re-building from source code.
+
+Create the React frontend build and save the template.
 
 ```bash
-oc project 354028-tools
+oc project 3cd915-tools
 oc process -f build.yaml --param-file=build.dev.env | oc create --save-config=true -f -
 ```
 
@@ -43,9 +55,9 @@ Update the configuration file and set the appropriate parameters.
 ```conf
 ENV_NAME=dev
 IMAGE_TAG=dev
-APP_DOMAIN=pims-dev.apps.silver.devops.gov.bc.ca
+APP_DOMAIN=pims-app-3cd915-dev.apps.silver.devops.gov.bc.ca
 APP_PORT=8080
-KEYCLOAK_REALM=xz0xtue5
+KEYCLOAK_REALM=72x8v9rw
 KEYCLOAK_CONFIG_FILE_NAME=keycloak.json
 KEYCLOAK_CONFIG_MOUNT_PATH=/tmp/app/dist/
 KEYCLOAK_AUTHORITY_URL=https://dev.oidc.gov.bc.ca/auth
@@ -57,10 +69,10 @@ MEMORY_REQUEST=100Mi
 MEMORY_LIMIT=2Gi
 ```
 
-Create the api deployment and save the template.
+Create the frontend deployment and save the template.
 
 ```bash
-oc project 354028-dev
+oc project 3cd915-dev
 oc process -f deploy.yaml --param-file=deploy.dev.env | oc create --save-config=true -f -
 ```
 
@@ -84,7 +96,7 @@ tls:
 
 ```conf
 ENV_NAME=dev
-APP_DOMAIN=pims-dev.apps.silver.devops.gov.bc.ca
+APP_DOMAIN=pims-app-3cd915-dev.apps.silver.devops.gov.bc.ca
 APP_PORT=8080
 ```
 

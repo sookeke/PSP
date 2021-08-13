@@ -1,9 +1,9 @@
-import React from 'react';
-import { CellProps } from 'react-table';
-import { IProperty } from 'actions/parcelsActions';
-import { Link } from 'react-router-dom';
-import queryString from 'query-string';
 import { PropertyTypes } from 'constants/propertyTypes';
+import { IProperty } from 'interfaces';
+import queryString from 'query-string';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { CellProps } from 'react-table';
 
 /**
  * A cell that provides a clickable link to view a given IProperty
@@ -21,12 +21,12 @@ const ViewPropertyCell = (props: CellProps<IProperty, number>) => {
           sidebar: true,
           disabled: true,
           loadDraft: false,
-          parcelId: [PropertyTypes.PARCEL, PropertyTypes.SUBDIVISION].includes(
-            property.propertyTypeId ?? PropertyTypes.PARCEL,
+          parcelId: [PropertyTypes.Parcel, PropertyTypes.Subdivision].includes(
+            property.propertyTypeId ?? PropertyTypes.Parcel,
           )
             ? property.id
             : undefined,
-          buildingId: property.propertyTypeId === PropertyTypes.BUILDING ? property.id : undefined,
+          buildingId: property.propertyTypeId === PropertyTypes.Building ? property.id : undefined,
         }),
       }}
     >

@@ -1,8 +1,9 @@
 import './Button.scss';
 
-import React, { CSSProperties, MouseEventHandler } from 'react';
-import { Button as ButtonBase, ButtonProps as ButtonPropsBase, Spinner } from 'react-bootstrap';
 import classnames from 'classnames';
+import React, { CSSProperties, MouseEventHandler } from 'react';
+import ButtonBase, { ButtonProps as ButtonPropsBase } from 'react-bootstrap/Button';
+import Spinner from 'react-bootstrap/Spinner';
 
 export type ButtonProps = ButtonPropsBase & {
   /** Adds a custom class to the button element of the <Button> component */
@@ -19,9 +20,13 @@ export type ButtonProps = ButtonPropsBase & {
   showSubmitting?: boolean;
   /** if true and showSubmitting is true, display the spinner */
   isSubmitting?: boolean;
+  /** default button text value */
+  defaultValue?: string | number | string[];
+  /** overwrite type from React.HTMLAttributes */
+  'aria-relevant'?: 'text' | 'all' | 'additions' | 'additions text' | 'removals';
 };
 
-export const Button: React.FC<ButtonProps & React.HTMLAttributes<HTMLButtonElement>> = ({
+export const Button: React.FC<ButtonProps & React.HTMLAttributes<HTMLElement>> = ({
   showSubmitting,
   isSubmitting,
   disabled,

@@ -1,7 +1,7 @@
 using Mapster;
+using BModel = Pims.Api.Models;
 using Entity = Pims.Dal.Entities;
 using Model = Pims.Api.Areas.Property.Models.Parcel;
-using BModel = Pims.Api.Models;
 
 namespace Pims.Api.Areas.Property.Mapping.Parcel
 {
@@ -16,7 +16,7 @@ namespace Pims.Api.Areas.Property.Mapping.Parcel
                 .Map(dest => dest.Key, src => src.Key)
                 .Map(dest => dest.Value, src => src.Value)
                 .Map(dest => dest.Note, src => src.Note)
-                .Inherits<Entity.BaseEntity, BModel.BaseModel>();
+                .Inherits<Entity.BaseAppEntity, BModel.BaseAppModel>();
 
 
             config.NewConfig<Model.BuildingFiscalModel, Entity.BuildingFiscal>()
@@ -26,7 +26,7 @@ namespace Pims.Api.Areas.Property.Mapping.Parcel
                 .Map(dest => dest.Key, src => src.Key)
                 .Map(dest => dest.Value, src => src.Value)
                 .Map(dest => dest.Note, src => src.Note)
-                .Inherits<BModel.BaseModel, Entity.BaseEntity>();
+                .Inherits<BModel.BaseAppModel, Entity.BaseAppEntity>();
         }
     }
 }
