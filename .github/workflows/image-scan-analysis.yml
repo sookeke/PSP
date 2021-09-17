@@ -13,7 +13,7 @@ jobs:
   build_frontend:
 
     name: pims-frontend
-    if: github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test'
+    if: github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test' || github.event.ref == 'refs/heads/pims-sookeke'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -33,23 +33,18 @@ jobs:
       with:
         image-ref: 'docker.io/pims-frontend:${{ github.sha }}'
         format: 'template'
-        template: '@/contrib/sarif.tpl'
+        template: '@/contrib/html.tpl'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend.sarif'
-    - name: Upload Trivy scan results to GitHub Security tab
-      if: always()
-      uses: github/codeql-action/upload-sarif@v1
-      with:
-        sarif_file: 'pims-frontend.sarif'
+        output: 'pims-frontend.html'
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name:  frontend Image Scan report
-        path: 'pims-frontend.sarif'
+        path: 'pims-frontend.html'
         
     
   build_backend:
