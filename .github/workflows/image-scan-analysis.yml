@@ -60,7 +60,7 @@ jobs:
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          ./build/secops_report.sh frontend.html > ./pr/PRBODY
+          ./build/secops_report.sh pims-frontend.html > ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
