@@ -62,7 +62,7 @@ jobs:
       name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
-        name: Scan-report
+        name: Scanreport
         path: pr/
         
   comment_pr:
@@ -82,7 +82,7 @@ jobs:
                run_id: ${{github.event.workflow_run.id }},
             });
             var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
-              return artifact.name == "Scan-report"
+              return artifact.name == "Scanreport"
             })[0];
             var download = await github.actions.downloadArtifact({
                owner: context.repo.owner,
