@@ -26,14 +26,13 @@ jobs:
       run: pip install trufflehog3 jtbl
     - name: Build PIMS Frontend
       run: |
-        docker build -t pims-frontend .   
+        docker pull -t pims-frontend registry.access.redhat.com/ubi8/nodejs-14:1-35
       working-directory: ${{env.working-directory}}
     - name: Scan PIMS Frontend Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'pims-frontend'
-        format: 'template'
-        template: '@/contrib/html.tpl'
+        format: 'table'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
