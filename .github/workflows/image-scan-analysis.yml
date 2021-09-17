@@ -80,6 +80,7 @@ jobs:
 
       - run: |
           cd pr/
+          ls
           unzip Scanreport.zip
 
       - name: Comment on PR
