@@ -66,6 +66,7 @@ jobs:
     - name: Human readable scan report
       if: always()
       run: |
+        cd build/
         ls -A
         ./build/secops_report.sh trufflehog_report.json
     - name: Generate HTML report only if secrets were found
@@ -76,7 +77,7 @@ jobs:
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
-    if: always()
+    if: failure() && github.event.workflow_run.event == 'push'
     needs: build_frontend 
     runs-on: ubuntu-latest
     steps:
