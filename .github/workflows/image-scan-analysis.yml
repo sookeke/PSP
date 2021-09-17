@@ -39,18 +39,19 @@ jobs:
       run: pip install trufflehog3 jtbl
     - name: Build PIMS Frontend
       run: |
-        docker build -t docker.io/pims-frontend:${{ github.sha }} .   
+        docker build -t pims-frontend .   
       working-directory: ${{env.working-directory}}
     - name: Scan PIMS Frontend Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'docker.io/pims-frontend:${{ github.sha }}'
-        format: 'json'
+        image-ref: 'pims-frontend'
+        format: 'template'
+        template: '@/contrib/html.tpl'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend.json'
+        output: 'pims-frontend.html'
     - name: Save PR number and scan results
       if: always()
       run: |
@@ -63,17 +64,6 @@ jobs:
       with:
         name: Scanreport
         path: pr/
-    - name: Human readable scan report
-      if: always()
-      run: |
-        cd build/
-        ls -A
-        ./build/secops_report.sh trufflehog_report.json
-    - name: Generate HTML report only if secrets were found
-      if: failure()
-      run: |
-        trufflehog3 -R pims-frontend.json --output pims-frontend.html
-        ls -la
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
