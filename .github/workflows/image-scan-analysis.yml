@@ -2,9 +2,9 @@ name: Security CI
 
 on:
   push:
-    branches: [master, test, dev]
+    branches: [master, test, dev, pims-sookeke, sookeke-patch-1]
   pull_request:
-    branches: [master, test, dev]
+    branches: [master, test, dev, pims-sookeke, sookeke-patch-1]
   schedule:
     - cron: '42 15 * * 5'
 
@@ -13,7 +13,7 @@ jobs:
   build_frontend:
 
     name: pims-frontend
-    if: github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test' || github.event.ref == 'refs/heads/pims-sookeke'
+    if: github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test' || github.event.ref == 'refs/heads/pims-sookeke, sookeke-patch-1'
     runs-on: ubuntu-latest
     permissions:
       actions: read
