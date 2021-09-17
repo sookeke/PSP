@@ -57,7 +57,7 @@ jobs:
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend.json ./pr/PRBODY
+          cp pims-frontend.html ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -67,7 +67,7 @@ jobs:
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
-    if: failure() && github.event.workflow_run.event == 'push'
+    if: always() && needs.build_frontend.result == 'failure' && github.event.workflow_run.event == 'push'
     needs: build_frontend 
     runs-on: ubuntu-latest
     steps:
