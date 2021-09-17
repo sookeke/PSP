@@ -43,7 +43,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name:  frontend Image Scan report
-        path: 'pims-frontend.html'
+        path: 'pims-frontend.json'
         
     
   build_backend:
