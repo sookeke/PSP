@@ -5,8 +5,6 @@ on:
     branches: [master, test, dev, pims-sookeke, sookeke-patch-1]
   pull_request:
     branches: [master, test, dev, pims-sookeke, sookeke-patch-1]
-  schedule:
-    - cron: '42 15 * * 5'
 
 jobs:
 
