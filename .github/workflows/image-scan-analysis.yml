@@ -13,7 +13,7 @@ jobs:
   build_frontend:
 
     name: pims-frontend
-    if: github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test' || github.event.ref == 'refs/heads/pims-sookeke, sookeke-patch-1'
+    if: github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test' || github.event.ref == 'refs/heads/sookeke-patch-1'
     runs-on: ubuntu-latest
     permissions:
       actions: read
