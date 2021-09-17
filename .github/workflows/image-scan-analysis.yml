@@ -35,18 +35,19 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-35'
-        format: 'table'
+        format: 'template'
+        template: '@/contrib/html.tpl'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend.txt'
+        output: 'pims-frontend.html'
     - name: Save PR number and scan results
       if: always()
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend.txt ./pr/PRBODY
+          cp pims-frontend.html ./pr/PRBODY.html
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -55,11 +56,7 @@ jobs:
         path: pr/
     - if: always()
       name: html to string
-      run: |
-         MAILLOG="$(cat pims-frontend.txt)"
-         echo "HTML_STRING=${MAILLOG}" >> $GITHUB_ENV
-         echo ${{env.HTML_STRING}}
-         cat pims-frontend.txt
+      run: ls
     - if: always()
       name: comment on PR with Binder link
       uses: actions/github-script@v3
@@ -79,7 +76,7 @@ jobs:
               issue_number: ${{ github.event.pull_request.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) : ${{env.HTML_STRING}}`
+              body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) : lunch badge on this branch`
             })
           })
       env:
@@ -111,5 +108,5 @@ jobs:
             gh pr comment $PRNUM -b "${1}"
           }
           PRNUM=$(cat ./NR)
-          PRBODY=$(cat ./PRBODY)
+          PRBODY=$(cat ./PRBODY.html)
           commentPR "$PRBODY"
