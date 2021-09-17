@@ -24,6 +24,22 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+          python-version: "3.x"
+
+    - name: Display python version
+      run: python -c "import sys; print(sys.version)"
+
+    - name: Cache python dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip # This path is specific to Ubuntu
+        key: ${{ runner.os }}-pip
+
+    - name: Install requirements
+      run: pip install trufflehog3 jtbl
     - name: Build PIMS Frontend
       run: |
         docker build -t docker.io/pims-frontend:${{ github.sha }} .   
@@ -33,19 +49,18 @@ jobs:
       with:
         image-ref: 'docker.io/pims-frontend:${{ github.sha }}'
         format: 'template'
-        template: '@contrib/html.tpl'
         exit-code: '1'
-        ignore-unfixed: true    
+        ignore-unfixed: true
+        template: '@contrib/html.tpl'
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
         output: 'pims-frontend.html'
-        
     - name: Save PR number and scan results
       if: always()
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cat pims-frontend.html > ./pr/PRBODY
+          ./build/secops_report.sh frontend.html > ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
