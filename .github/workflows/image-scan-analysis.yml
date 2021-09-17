@@ -45,25 +45,34 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'docker.io/pims-frontend:${{ github.sha }}'
-        format: 'template'
-        template: '@/contrib/html.tpl'
+        format: 'json'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend.html'
+        output: 'pims-frontend.json'
     - name: Save PR number and scan results
       if: always()
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend.html ./pr/PRBODY
+          cp pims-frontend.json ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: Scanreport
         path: pr/
+    - name: Human readable scan report
+      if: always()
+      run: |
+        ls -A
+        ./build/secops_report.sh trufflehog_report.json
+    - name: Generate HTML report only if secrets were found
+      if: failure()
+      run: |
+        trufflehog3 -R pims-frontend.json --output pims-frontend.html
+        ls -la
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
