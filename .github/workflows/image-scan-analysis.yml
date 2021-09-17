@@ -67,7 +67,7 @@ jobs:
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
-    if: always() && needs.build_frontend.result == 'failure' && github.event.workflow_run.event == 'push'
+    if: always() && needs.build_frontend.result == 'failure' && github.event_name == 'push'
     needs: build_frontend 
     runs-on: ubuntu-latest
     steps:
