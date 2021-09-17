@@ -87,6 +87,8 @@ jobs:
               body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left: Launch a binder notebook on this branch`
             })
           })
+      env:
+        BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
