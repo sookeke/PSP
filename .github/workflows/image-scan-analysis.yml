@@ -75,7 +75,7 @@ jobs:
           github.pulls.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            pull_number: context.payload.issue.number
+            pull_number: 25
           }).then( (pr) => {
 
             // use the branch name to make a comment  on the PR with a Binder badge
