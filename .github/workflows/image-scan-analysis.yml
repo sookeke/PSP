@@ -81,7 +81,7 @@ jobs:
             // use the branch name to make a comment  on the PR with a Binder badge
             var BRANCH_NAME = pr.data.head.ref
             github.issues.createComment({
-              issue_number: context.payload.issue.number,
+              issue_number: 25,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left: Launch a binder notebook on this branch`
