@@ -49,9 +49,9 @@ jobs:
       with:
         image-ref: 'docker.io/pims-frontend:${{ github.sha }}'
         format: 'template'
+        template: '@/contrib/html.tpl'
         exit-code: '1'
         ignore-unfixed: true
-        template: '@contrib/html.tpl'
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
         output: 'pims-frontend.html'
