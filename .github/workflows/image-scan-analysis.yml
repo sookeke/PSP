@@ -64,7 +64,8 @@ jobs:
       with:
         name: Scanreport
         path: pr/
-    - name: comment on PR with Binder link
+    - if: always()
+      name: comment on PR with Binder link
       uses: actions/github-script@v3
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
