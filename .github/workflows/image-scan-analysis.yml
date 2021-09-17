@@ -19,6 +19,7 @@ jobs:
       pull-requests: write
     env:
       working-directory: ./frontend
+      HTML_STRING: smaple
 
     steps:
     - uses: actions/checkout@v1
@@ -34,19 +35,18 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-35'
-        format: 'template'
-        template: '@/contrib/junit.tpl'
+        format: 'table'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend.xml'
+        output: 'pims-frontend.txt'
     - name: Save PR number and scan results
       if: always()
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend.xml ./pr/PRBODY
+          cp pims-frontend.txt ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -56,11 +56,10 @@ jobs:
     - if: always()
       name: html to string
       run: |
-         sed -e 's/<[^>]*>/\n/g' pims-frontend.xml > foo.txt
-         MAILLOG="$(cat pims-frontend.xml)"
+         MAILLOG="$(cat pims-frontend.txt)"
          echo "HTML_STRING=${MAILLOG}" >> $GITHUB_ENV
          echo ${{env.HTML_STRING}}
-         cat foo.txt
+         cat pims-frontend.txt
     - if: always()
       name: comment on PR with Binder link
       uses: actions/github-script@v3
