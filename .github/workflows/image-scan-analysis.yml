@@ -36,18 +36,18 @@ jobs:
       with:
         image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-35'
         format: 'template'
-        template: '@/contrib/html.tpl'
+        template: '{{ range . }} {{ .Target }} {{ end }}'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend.html'
+        output: 'pims-frontend'
     - name: Save PR number and scan results
       if: always()
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend.html ./pr/PRBODY.html
+          cp pims-frontend ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -108,5 +108,5 @@ jobs:
             gh pr comment $PRNUM -b "${1}"
           }
           PRNUM=$(cat ./NR)
-          PRBODY=$(cat ./PRBODY.html)
+          PRBODY=$(cat ./PRBODY)
           commentPR "$PRBODY"
