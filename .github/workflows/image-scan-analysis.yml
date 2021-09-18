@@ -108,4 +108,5 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY)
-          commentPR "$PRBODY"
+          INDENTED='```'${PRBODY}'```'
+          commentPR "$INDENTED"
