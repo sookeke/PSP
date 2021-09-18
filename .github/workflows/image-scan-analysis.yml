@@ -108,5 +108,5 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY)
-          INDENTED='``` build_frontend\ =========================\'${PRBODY}'```'
+          INDENTED='``` build_frontend vulnerability report<br/> =========================<br/>'${PRBODY}'```'
           commentPR "$INDENTED"
