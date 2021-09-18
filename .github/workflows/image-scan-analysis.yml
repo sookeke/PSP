@@ -76,8 +76,9 @@ jobs:
               issue_number: ${{ github.event.pull_request.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left:  : lunch badge on this branch`
+              body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left: Launch a binder notebook on this branch`
             })
+          })
       env:
         BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
         
@@ -104,6 +105,7 @@ jobs:
         run: |
           cd pr/
           ls
+          cat ./NR
           if [ -s PRBODY.txt ]; then
           commentPR () {
             gh pr comment $PRNUM -b "${1}"
