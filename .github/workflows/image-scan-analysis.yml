@@ -19,12 +19,9 @@ jobs:
       pull-requests: write
     env:
       working-directory: ./openshift/4.0/templates/Logging
-      HTML_STRING: smaple
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install requirements
-      run: pip install trufflehog3 jtbl
     - name: Build PIMS Frontend
       run: |
         #docker build -t docker.io/my-organization/my-app:${{ github.sha }} .   
@@ -84,7 +81,7 @@ jobs:
         
   comment_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
-    if: always() && needs.build_frontend.result == 'failure'
+    if: always() && needs.build_frontend.result == 'failure' && github.event_name == 'pull_request'
     needs: build_frontend 
     runs-on: ubuntu-latest
     steps:
