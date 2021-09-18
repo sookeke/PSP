@@ -112,7 +112,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## registry.access.redhat.com/ubi8/nodejs-14:1-35 vulnerability report<br/> =========================<br/>```'${PRBODY}'```'
+          INDENTED='## registry.access.redhat.com/ubi8/nodejs-14:1-35 vulnerability report```'${PRBODY}'```'
             commentPR "$INDENTED"
           else
             echo "No vulnerability"
