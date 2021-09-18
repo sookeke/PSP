@@ -18,7 +18,7 @@ jobs:
       security-events: write
       pull-requests: write
     env:
-      working-directory: ./frontend
+      working-directory: ./openshift/4.0/templates/Logging
       HTML_STRING: smaple
 
     steps:
@@ -27,14 +27,15 @@ jobs:
       run: pip install trufflehog3 jtbl
     - name: Build PIMS Frontend
       run: |
-        docker pull registry.access.redhat.com/ubi8/nodejs-14:1-35
-        docker tag registry.access.redhat.com/ubi8/nodejs-14:1-35 noejs-14:latest
-        docker images ls
+        docker build -t docker.io/my-organization/my-app:${{ github.sha }} .   
+        #docker pull registry.access.redhat.com/ubi8/nodejs-14:1-35
+        #docker tag registry.access.redhat.com/ubi8/nodejs-14:1-35 noejs-14:latest
+        docker image ls
       working-directory: ${{env.working-directory}}
     - name: Scan PIMS Frontend Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-35'
+        image-ref: 'docker.io/my-organization/my-app:${{ github.sha }}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -108,5 +109,5 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY)
-          INDENTED='``` build_frontend vulnerability report<br/> =========================<br/>'${PRBODY}'```'
+          INDENTED='build_frontend vulnerability report<br/> =========================<br/>```'${PRBODY}'```'
           commentPR "$INDENTED"
