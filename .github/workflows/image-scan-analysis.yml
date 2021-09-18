@@ -35,19 +35,18 @@ jobs:
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-35'
-        format: 'template'
-        template: '{{ range . }} {{ .Target }} {{ end }}'
+        format: 'table'
         exit-code: '1'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
-        output: 'pims-frontend'
+        output: 'pims-frontend.txt'
     - name: Save PR number and scan results
       if: always()
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend ./pr/PRBODY
+          cp pims-frontend.txt ./pr/PRBODY
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -109,4 +108,4 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY)
-          commentPR "$PRBODY"
+          commentPR "```$PRBODY```"
