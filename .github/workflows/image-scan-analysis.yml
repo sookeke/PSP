@@ -32,7 +32,7 @@ jobs:
     - name: Scan PIMS Frontend Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-35'
+        image-ref: 'registry.access.redhat.com/ubi8/nodejs-14:1-43'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -109,7 +109,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## registry.access.redhat.com/ubi8/nodejs-14:1-35 vulnerability report
+          INDENTED='## registry.access.redhat.com/ubi8/nodejs-14:1-43 vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
