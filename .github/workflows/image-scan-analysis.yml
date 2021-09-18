@@ -47,7 +47,7 @@ jobs:
       run: |
           mkdir -p ./pr
           echo ${{ github.event.pull_request.number }} > ./pr/NR
-          cp pims-frontend.txt ./pr/PRBODY
+          cp pims-frontend.txt ./pr/PRBODY.txt
     - if: always()
       name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -76,9 +76,8 @@ jobs:
               issue_number: ${{ github.event.pull_request.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) : lunch badge on this branch`
+              body: `[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/${context.repo.owner}/${context.repo.repo}/${BRANCH_NAME}) :point_left:  : lunch badge on this branch`
             })
-          })
       env:
         BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
         
@@ -104,10 +103,16 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
           cd pr/
+          ls
+          if [ -s PRBODY.txt ]; then
           commentPR () {
             gh pr comment $PRNUM -b "${1}"
           }
           PRNUM=$(cat ./NR)
-          PRBODY=$(cat ./PRBODY)
+          PRBODY=$(cat ./PRBODY.txt)
           INDENTED='build_frontend vulnerability report<br/> =========================<br/>```'${PRBODY}'```'
-          commentPR "$INDENTED"
+            commentPR "$INDENTED"
+          else
+            echo "No vulnerability"
+          fi
+        
