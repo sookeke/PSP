@@ -43,7 +43,7 @@ RUN curl -sL https://github.com/zaproxy/zaproxy/releases/download/v${ZAPROXY_VER
 	rm webswing.zip && \
 	mv webswing-* webswing && \
 	# Remove Webswing bundled examples
-	rm -R webswing/apps/
+	rm -R webswing/apps/ && \
     touch AcceptedLicense && \
     git clone --depth 1 --branch v${ZAPROXY_VERSION} https://github.com/zaproxy/zaproxy /tmp/zaproxy && \
     rsync -av /tmp/zaproxy/docker/{policies,scripts,zap*} /zap/ && \
