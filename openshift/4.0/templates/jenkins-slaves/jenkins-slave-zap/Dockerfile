@@ -4,8 +4,7 @@ LABEL maintainer="Deven Phillips <deven.phillips@redhat.com>"
 ARG ZAPROXY_VERSION="2.10.0"
 ARG WEBSWING_VERSION="21.1.5"
 
-RUN yum install -y epel-release && \
-   yum update && yum upgrade && \
+RUN yum update && yum upgrade && yum install -y epel-release && \   
     yum clean all && \
     yum install -y redhat-rpm-config \
     make automake autoconf gcc gcc-c++ \
