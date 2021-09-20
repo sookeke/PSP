@@ -1,8 +1,8 @@
 FROM centos:centos7
 LABEL maintainer="Deven Phillips <deven.phillips@redhat.com>"
 
-ARG ZAPROXY_VERSION="2.9.0"
-ARG WEBSWING_VERSION="2.5.10"
+ARG ZAPROXY_VERSION="2.10.0"
+ARG WEBSWING_VERSION="21.1.5"
 
 RUN yum install -y epel-release && \
     yum clean all && \
@@ -37,8 +37,13 @@ COPY .xinitrc /var/lib/jenkins/
 
 WORKDIR /zap
 RUN curl -sL https://github.com/zaproxy/zaproxy/releases/download/v${ZAPROXY_VERSION}/ZAP_${ZAPROXY_VERSION}_Linux.tar.gz | tar zx --strip-components=1 && \
-    curl -sL https://bitbucket.org/meszarv/webswing/get/${WEBSWING_VERSION}.tar.gz | tar zx --strip-components=1 -C webswing && \
-    rm -rf webswing/demo && \
+	# Setup Webswing
+	curl -s -L "https://storage.googleapis.com/builds.webswing.org/releases/webswing-examples-eval-${WEBSWING_VERSION}-distribution.zip" > webswing.zip && \
+	unzip webswing.zip && \
+	rm webswing.zip && \
+	mv webswing-* webswing && \
+	# Remove Webswing bundled examples
+	rm -R webswing/apps/
     touch AcceptedLicense && \
     git clone --depth 1 --branch v${ZAPROXY_VERSION} https://github.com/zaproxy/zaproxy /tmp/zaproxy && \
     rsync -av /tmp/zaproxy/docker/{policies,scripts,zap*} /zap/ && \
