@@ -4,8 +4,19 @@ LABEL maintainer="Deven Phillips <deven.phillips@redhat.com>"
 ARG ZAPROXY_VERSION="2.10.0"
 ARG WEBSWING_VERSION="21.1.5"
 
+RUN yum install gcc openssl-devel bzip2-devel libffi-devel zlib-devel -y
+RUN curl https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz --output /tmp/Python-3.7.9.tgz
+WORKDIR /tmp
+RUN tar xzf Python-3.7.9.tgz
+WORKDIR /tmp/Python-3.7.9
+RUN ./configure --enable-optimizations
+RUN yum install make -y
+RUN make altinstall
+RUN yum install which -y
+WORKDIR /tmp
+RUN rm -r Python-3.7.9.tgz
+
 RUN yum -y update && yum install -y epel-release && \   
-    yum install -y --enablerepo="epel" python-pip && \
     yum clean all && \
     yum install -y redhat-rpm-config \
     make automake autoconf gcc gcc-c++ \
@@ -17,7 +28,6 @@ RUN yum -y update && yum install -y epel-release && \
     net-tools python-pip \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
     java-1.8.0-openjdk-devel nss_wrapper && \
-    dnf install -y python3 && \
     yum clean all && \
     #curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && chmod 755 get-pip.py && ./get-pip.py && \
     #pip install --upgrade pip && \
