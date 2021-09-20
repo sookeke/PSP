@@ -5,6 +5,7 @@ ARG ZAPROXY_VERSION="2.10.0"
 ARG WEBSWING_VERSION="21.1.5"
 
 RUN yum -y update && yum install -y epel-release && \   
+    yum install -y --enablerepo="epel" python-pip && \
     yum clean all && \
     yum install -y redhat-rpm-config \
     make automake autoconf gcc gcc-c++ \
@@ -17,8 +18,6 @@ RUN yum -y update && yum install -y epel-release && \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
     java-1.8.0-openjdk-devel nss_wrapper && \
     yum clean all && \
-    dnf install python3 && \
-    yum install python-pip && \
     #curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && chmod 755 get-pip.py && ./get-pip.py && \
     #pip install --upgrade pip && \
     pip install zapcli && \
