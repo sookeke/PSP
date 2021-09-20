@@ -43,19 +43,18 @@ RUN curl -sL https://github.com/zaproxy/zaproxy/releases/download/v${ZAPROXY_VER
 	unzip webswing.zip && \
 	rm webswing.zip && \
 	mv webswing-* webswing && \
-	# Remove Webswing bundled examples
-	rm -R webswing/apps/ && \
-    touch AcceptedLicense && \
-    git clone --depth 1 --branch v${ZAPROXY_VERSION} https://github.com/zaproxy/zaproxy /tmp/zaproxy && \
-    rsync -av /tmp/zaproxy/docker/{policies,scripts,zap*} /zap/ && \
-    rsync -av /tmp/zaproxy/docker/policies /var/lib/jenkins/.ZAP/ && \
-    rsync -av /tmp/zaproxy/docker/webswing.config /zap/webswing/webswing.config && \
-    rm -rf /tmp/zaproxy && \
-    touch /.dockerenv && \
-    chown root:root /zap -R && \
-    chown root:root -R /var/lib/jenkins && \
-    chmod 777 /var/lib/jenkins -R && \
-    chmod 777 /zap -R
+	rm -Rf webswing/apps/ && \
+    	touch AcceptedLicense && \
+   	git clone --depth 1 --branch v${ZAPROXY_VERSION} https://github.com/zaproxy/zaproxy /tmp/zaproxy && \
+    	rsync -av /tmp/zaproxy/docker/{policies,scripts,zap*} /zap/ && \
+    	rsync -av /tmp/zaproxy/docker/policies /var/lib/jenkins/.ZAP/ && \
+    	rsync -av /tmp/zaproxy/docker/webswing.config /zap/webswing/webswing.config && \
+    	rm -rf /tmp/zaproxy && \
+    	touch /.dockerenv && \
+    	chown root:root /zap -R && \
+    	chown root:root -R /var/lib/jenkins && \
+    	chmod 777 /var/lib/jenkins -R && \
+    	chmod 777 /zap -R
 
 WORKDIR /var/lib/jenkins
 
