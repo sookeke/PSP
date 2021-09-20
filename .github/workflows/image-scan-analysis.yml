@@ -27,7 +27,7 @@ jobs:
     - name: Build PIMS OWASP ZAP Image
       run: |
         #docker build -t docker.io/my-organization/my-app:${{ github.sha }} .   
-        docker build -t {{env.image-name}} . 
+        docker build -t ${{env.image-name}} . 
         #docker pull registry.access.redhat.com/ubi8/nodejs-14:1-35
         #docker tag registry.access.redhat.com/ubi8/nodejs-14:1-35 noejs-14:latest
         docker image ls
