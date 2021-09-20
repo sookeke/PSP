@@ -11,6 +11,7 @@ RUN yum install -y epel-release && \
     libstdc++ libstdc++-devel \
     java-1.8.0-openjdk wget curl \
     xmlstarlet git x11vnc gettext tar \
+    yum install unzip \
     xorg-x11-server-Xvfb openbox xterm \
     net-tools python-pip \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
