@@ -16,6 +16,15 @@ RUN yum -y update && yum install -y epel-release && \
     net-tools unzip zlib-devel \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
     java-1.8.0-openjdk-devel nss_wrapper && \
+    yum groupinstall -y "Development Tools" && \
+    yum install -y \
+        cairo-devel \
+        dejavu-sans-fonts \
+        libffi-devel \
+        libxml2-devel \
+        libxslt-devel \
+        openssl-devel 
+    
     yum clean all 
     
     #Download and install Pyhton 3.7 for RHEL 8
