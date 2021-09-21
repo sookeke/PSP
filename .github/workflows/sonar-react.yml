@@ -59,20 +59,16 @@ jobs:
           fail_ci_if_error: true
 
       - name: SonarQube Scan
-        uses: philips-software/sonar-scanner-action@v1.2.0
+        uses: sonarsource/sonarcloud-github-action@master
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
           PROJECT_KEY: 21faa627-fe70-4a67-89e3-1262a32d2e2c
           PROJECT_NAME: PIMS-APP
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          baseDir: ${{env.working-directory}}
-          token: ${{ env.SONAR_TOKEN }}
-          projectName: ${{env.PROJECT_NAME}}
-          url: ${{env.SONAR_HOST_URL}}
-          isCommunityEdition: true
-          projectKey: ${{env.PROJECT_KEY}}
-          enablePullRequestDecoration: true
-          runQualityGate: true
+          projectBaseDir: ${{env.working-directory}}
+          args: >
+            -Dsonar.projectKey=${{env.PROJECT_KEY}}
+            -Dsonar.projectName=${{env.PROJECT_NAME}}
           
