@@ -2,9 +2,9 @@ name: Sonar (React)
 
 on:
   push:
-    branches: [master, dev, test]
+    branches: [master, dev, test, sookeke-patch-1]
   pull_request:
-    branches: [master, dev, test]
+    branches: [master, dev, test, sookeke-patch-1]
 
 jobs:
   build:
