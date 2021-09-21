@@ -4,17 +4,6 @@ LABEL maintainer="Deven Phillips <deven.phillips@redhat.com>"
 ARG ZAPROXY_VERSION="2.10.0"
 ARG WEBSWING_VERSION="21.1.5"
 
-RUN yum install gcc openssl-devel bzip2-devel libffi-devel zlib-devel -y
-RUN curl https://www.python.org/ftp/python/3.7.9/Python-3.7.9.tgz --output /tmp/Python-3.7.9.tgz
-WORKDIR /tmp
-RUN tar xzf Python-3.7.9.tgz
-WORKDIR /tmp/Python-3.7.9
-RUN ./configure --enable-optimizations
-RUN yum install make -y
-RUN make altinstall
-RUN yum install which -y
-WORKDIR /tmp
-RUN rm -r Python-3.7.9.tgz
 
 RUN yum -y update && yum install -y epel-release && \   
     yum clean all && \
@@ -28,13 +17,32 @@ RUN yum -y update && yum install -y epel-release && \
     net-tools python-pip \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
     java-1.8.0-openjdk-devel nss_wrapper && \
-    yum clean all && \
+    yum clean all 
+    
+    #Download and install Pyhton 3.7 for RHEL 8
+RUN curl https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz -O -J -L && \
+    tar xzf Python-3.7.0.tgz -C /usr/src/ && \
+    rm -f /usr/bin/python3 && \
+    /usr/src/Python-3.7.0/configure --enable-optimizations --prefix=/usr/bin/python3 && \
+    make altinstall && \
+    ln -s /usr/bin/python3/bin/python3.7 /usr/bin/python3.7 && \
+    rm Python-3.7.0.tgz 
+    
+ # set python3.7 as default
+RUN alternatives --install /usr/bin/unversioned-python python /usr/bin/python3.7 70
+RUN alternatives --set python /usr/bin/python3.7
+RUN ln -s /usr/bin/unversioned-python /usr/bin/python
+# Add python binaries to the PATH
+ENV PATH=/usr/bin/python3/bin:$PATH
+    
+    #&& \
     #curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && chmod 755 get-pip.py && ./get-pip.py && \
-    #pip install --upgrade pip && \
-    pip install zapcli && \
-    pip install python-owasp-zap-v2.4 && \
-    mkdir -p /zap/{wrk,webswing} && \
-    mkdir -p /var/lib/jenkins/.vnc
+ RUN ln -s /usr/bin/python3/bin/pip3.7 /usr/bin/pip && \
+     pip --version && pip install --upgrade pip && \
+     pip install zapcli && \
+     pip install python-owasp-zap-v2.4 && \
+     mkdir -p /zap/{wrk,webswing} && \
+     mkdir -p /var/lib/jenkins/.vnc
 
 # Copy the entrypoint 
 COPY configuration/* /var/lib/jenkins/
