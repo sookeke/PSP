@@ -59,17 +59,20 @@ jobs:
           fail_ci_if_error: true
 
       - name: SonarQube Scan
-        uses: sonarsource/sonarcloud-github-action@master
+        uses: xablu/github-pr-decoration-action@main
+        with:
+          sonarProjectKey: ${{env.PROJECT_KEY}}
+          sonarProjectName: ${{env.PROJECT_NAME}}
+          sonarHostname: ${{ secrets.SONAR_URL }}
+          sonarBeginArguments: /d:sonar.scm.revision=${{ github.event.pull_request.head.sha }}
+          sonarEnableScan: true
+          sonarToken: ${{ env.SONAR_TOKEN }}
+          projectBaseDir: ${{env.working-directory}}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
           PROJECT_KEY: 21faa627-fe70-4a67-89e3-1262a32d2e2c
           PROJECT_NAME: PIMS-APP
-        with:
-          projectBaseDir: ${{env.working-directory}}
-          args: >
-            -Dsonar.projectKey=${{env.PROJECT_KEY}}
-            -Dsonar.projectName=${{env.PROJECT_NAME}}
-            -Dsonar.login=${{env.SONAR_TOKEN}}
+          working-directory: ${{env.working-directory}}
           
