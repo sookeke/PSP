@@ -15,8 +15,8 @@ RUN yum -y update && yum install -y epel-release && \
     xorg-x11-server-Xvfb openbox xterm \
     net-tools unzip zlib-devel \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
-    java-1.8.0-openjdk-devel nss_wrapper && \
-    yum groupinstall -y "Development Tools" && \
+    java-1.8.0-openjdk-devel nss_wrapper
+RUN yum groupinstall -y "Development Tools" && \
     yum install -y \
         cairo-devel \
         dejavu-sans-fonts \
@@ -25,7 +25,7 @@ RUN yum -y update && yum install -y epel-release && \
         libxslt-devel \
         openssl-devel 
     
-    yum clean all 
+RUN yum clean all 
     
     #Download and install Pyhton 3.7 for RHEL 8
 RUN curl https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz -O -J -L && \
