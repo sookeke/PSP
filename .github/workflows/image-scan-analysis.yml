@@ -375,11 +375,11 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Login to registry.redhat.io
-        uses: docker/login-action@v1
-        with:
-          registry: registry.redhat.io
-          username: pimsmoti
-          password: ${{ secrets.DOCKERPASSWORD }}
+      uses: docker/login-action@v1
+      with:
+        registry: registry.redhat.io
+        username: pimsmoti
+        password: ${{ secrets.DOCKERPASSWORD }}
     - name: Build dotnet5 sdk and runtime Base Image
       run: |
         docker build -t ${{env.image-name}}:${{env.tag}} .   
