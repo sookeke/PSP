@@ -76,7 +76,16 @@ jobs:
           projectKey: ${{env.PROJECT_KEY}}
           enablePullRequestDecoration: true
           runQualityGate: true
-          
+       
+      - name: Find Comment
+        if: failure() && steps.scan.outcome == 'failure' && github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v1
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: STATIC CODE
+       
       - name: Check Quality Gate and Create Comment
         if: failure() && steps.scan.outcome == 'failure' && github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v1
@@ -85,6 +94,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
           PROJECT_KEY: ${{secrets.PROJECT_KEY_APP}}
         with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             STATIC CODE QUALITY GATE STATUS: FAILED.
