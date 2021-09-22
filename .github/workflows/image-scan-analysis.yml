@@ -244,7 +244,7 @@ jobs:
           reactions: confused 
 
   build_frontend:
-
+    if: always()
     needs: [nodejs-base-image,nginx-base-image]
     name: pims-frontend
     runs-on: ubuntu-latest
@@ -410,8 +410,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       working-directory: ./openshift/4.0/templates/base-images/dotnet50
-      image-name: dotnet-50
-      tag: 5.0-23
+      image-name: dotnet-50-runtime
+      tag: 5.0-14.1621419100
       output-filename: dotnet50.txt
     steps:
       - uses: actions/checkout@v2
@@ -530,7 +530,6 @@ jobs:
    
   build_logging:
   
-    if: always() && (github.event.ref == 'refs/heads/master' || github.event.ref == 'refs/heads/test')
     needs: [build_frontend, build_backend] 
     name: logging
     runs-on: ubuntu-latest
