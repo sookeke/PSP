@@ -118,4 +118,5 @@ jobs:
             [View and resolve details on][1]
 
             [1]: ${{env.SONAR_HOST_URL}}dashboard?id=${{env.PROJECT_KEY}}
+          edit-mode: replace
           reactions: eyes
