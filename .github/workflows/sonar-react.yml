@@ -80,13 +80,11 @@ jobs:
       - name: Check Quality Gate and Create Comment
         if: failure() && steps.scan.outcome == 'failure'
         uses: peter-evans/create-or-update-comment@v1
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
-          PROJECT_KEY: 21faa627-fe70-4a67-89e3-1262a32d2e2c
         with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body : |
-            Failed Static Code Analysis Quality Gate.
-            [Debug output of workflow][1]
-            [1]: ${{ env.SONAR_HOST_URL }}dashboard?id=${{env.PROJECT_KEY}}
+          issue-number: 25
+          body: |
+            This is a multi-line test comment
+            - With GitHub **Markdown** :sparkles:
+            - Created by [create-or-update-comment][1]
+            [1]: https://github.com/peter-evans/create-or-update-comment
+          reactions: '+1'
