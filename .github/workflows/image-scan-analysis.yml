@@ -43,7 +43,7 @@ jobs:
         output: ${{env.output-filename}}
     - name: Save PR number and scan results
       id: scan-result
-      if: failure() && steps.scan.output == 'failure'
+      if: failure() && steps.scan.outcome == 'failure'
       run: |
           mkdir -p ./pr_${{env.image-name}}
           echo ${{ github.event.pull_request.number }} > ./pr_${{env.image-name}}/NR
@@ -368,21 +368,16 @@ jobs:
       security-events: write
     env:
       working-directory: ./openshift/4.0/templates/base-images/dotnet50
-      image-name: dotnet-50
-      tag: 5.0-23
+      image-name: registry.access.redhat.com/ubi8/dotnet-50-runtime
+      tag: 5.0-14.1621419100
       output-filename: dotnet50.txt
 
     steps:
     - uses: actions/checkout@v1
-    - name: Login to registry.redhat.io
-      uses: docker/login-action@v1
-      with:
-        registry: registry.redhat.io
-        username: pimsmoti
-        password: ${{ secrets.DOCKERPASSWORD }}
     - name: Build dotnet5 sdk and runtime Base Image
       run: |
-        docker build -t ${{env.image-name}}:${{env.tag}} .   
+        docker pull ${{env.image-name}}:${{env.tag}}
+        #docker build -t ${{env.image-name}}:${{env.tag}} .   
       working-directory: ${{env.working-directory}}
     - name: Scan dotnet5 SDK and runtime Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
