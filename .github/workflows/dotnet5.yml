@@ -106,17 +106,10 @@ jobs:
           dotnetBuildArguments: ${{env.working-directory}}
           dotnetTestArguments: ${{env.working-directory}} --logger trx --collect:"XPlat Code Coverage" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
           # Optional extra command arguments the the SonarScanner 'begin' command
-          sonarBeginArguments: /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" -d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx"
+          sonarBeginArguments: /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" -d:sonar.cs.vstest.reportsPaths="**/TestResults/*.trx" -d:sonar.qualitygate.wait=true
           # The key of the SonarQube project
           sonarProjectKey: 483bc59d-f9ef-428c-866e-581d9ea69eab
           # The name of the SonarQube project
           sonarProjectName: PIMS-API
           # The SonarQube server URL. For SonarCloud, skip this setting.
           sonarHostname: ${{secrets.SONAR_URL}}
-      - name: SonarQube Quality Gate check
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        with:
-          scanMetadataReportFile: target/sonar/report-task.txt
-        timeout-minutes: 5
-        env:
-         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
