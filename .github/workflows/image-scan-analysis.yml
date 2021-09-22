@@ -34,7 +34,7 @@ jobs:
       id: scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{env.image-name}}:${{env.tag}}
+        image-ref: 'registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -376,13 +376,13 @@ jobs:
     - uses: actions/checkout@v1
     - name: Build dotnet5 sdk and runtime Base Image
       run: |
-        docker pull ${{env.image-name}}:${{env.tag}}
-        #docker build -t registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}} .   
+        docker pull registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}}
+        #docker build -t registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}} .   .io requires authentication
       working-directory: ${{env.working-directory}}
     - name: Scan dotnet5 SDK and runtime Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{env.image-name}}:${{env.tag}}
+        image-ref: 'registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
