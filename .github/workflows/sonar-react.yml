@@ -86,8 +86,8 @@ jobs:
           PROJECT_KEY: 21faa627-fe70-4a67-89e3-1262a32d2e2c
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ github.event.client_payload.repository }}
-          issue-number: ${{ github.event.client_payload.issue_id }}
+          comment-author: 'github-actions[bot]'
+          issue-number: ${{ github.event.pull_request.number }}
           body : |
             Failed Static Code Analysis Quality Gate.
 
