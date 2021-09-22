@@ -74,5 +74,5 @@ jobs:
           isCommunityEdition: true
           projectKey: ${{env.PROJECT_KEY}}
           enablePullRequestDecoration: true
-          runQualityGate: true
+          runQualityGate: false
           
