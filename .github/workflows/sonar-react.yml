@@ -84,10 +84,26 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: STATIC CODE
+          body-includes: STATIC CODE QUALITY GATE STATUS
        
       - name: Check Quality Gate and Create Comment
-        if: failure() && steps.scan.outcome == 'failure' && github.event_name == 'pull_request'
+        if: failure() && steps.scan.outcome == 'failure' && github.event_name == 'pull_request' && steps.fc.outputs.comment-id == ''
+        uses: peter-evans/create-or-update-comment@v1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+          PROJECT_KEY: ${{secrets.PROJECT_KEY_APP}}
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            STATIC CODE QUALITY GATE STATUS: FAILED.
+            
+            [View and resolve details on][1]
+
+            [1]: ${{env.SONAR_HOST_URL}}dashboard?id=${{env.PROJECT_KEY}}
+          reactions: confused
+      - name: Check Quality Gate and Update Comment
+        if: failure() && steps.scan.outcome == 'failure' && github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
         uses: peter-evans/create-or-update-comment@v1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -102,4 +118,4 @@ jobs:
             [View and resolve details on][1]
 
             [1]: ${{env.SONAR_HOST_URL}}dashboard?id=${{env.PROJECT_KEY}}
-          reactions: confused
+          reactions: eyes
