@@ -71,3 +71,4 @@ jobs:
           args: >
             -Dsonar.projectKey=${{env.PROJECT_KEY}}
             -Dsonar.projectName=${{env.PROJECT_NAME}}
+            -Dsonar.qualitygate.wait=true
