@@ -2,9 +2,9 @@ name: Sonar (React)
 
 on:
   push:
-    branches: [master, dev, test, sookeke-patch-1]
+    branches: [master, dev, test, pims-sookeke, sookeke-patch-1]
   pull_request:
-    branches: [master, dev, test, sookeke-patch-1]
+    branches: [master, dev, test, pims-sookeke, sookeke-patch-1]
 
 jobs:
   build:
@@ -78,7 +78,7 @@ jobs:
           runQualityGate: true
           
       - name: Check Quality Gate and Create Comment
-        if: failure() && steps.scan.outcome == 'failure'
+        if: failure() && steps.scan.outcome == 'failure' && github.event_name == 'pull_request'
         uses: peter-evans/create-or-update-comment@v1
         with:
           issue-number: ${{ github.event.pull_request.number }}
