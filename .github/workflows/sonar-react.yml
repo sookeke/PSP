@@ -59,6 +59,7 @@ jobs:
           fail_ci_if_error: true
 
       - name: SonarQube Scan
+        id: scan
         uses: philips-software/sonar-scanner-action@v1.2.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -74,5 +75,23 @@ jobs:
           isCommunityEdition: true
           projectKey: ${{env.PROJECT_KEY}}
           enablePullRequestDecoration: true
-          runQualityGate: false
+          runQualityGate: true
+          
+      - name: Check Quality Gate and Create Comment
+        if: failure() && steps.scan.outcome == 'failure'
+        uses: peter-evans/create-or-update-comment@v1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+          PROJECT_KEY: 21faa627-fe70-4a67-89e3-1262a32d2e2c
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.event.client_payload.repository }}
+          issue-number: ${{ github.event.client_payload.issue_id }}
+          body : |
+            Failed Static Code Analysis Quality Gate.
+
+            [Debug output of workflow][1]
+
+            [1]: ${{ env.SONAR_HOST_URL }}dashboard?id=${{env.PROJECT_KEY}}
           
