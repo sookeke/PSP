@@ -107,8 +107,9 @@ jobs:
         run: |
           cd ${{env.image-name}}/
           if [ -s ${{env.output-filename}} ]; then
-          body=$(cat ${{env.output-filename}}) 
-          echo ::set-output name=body::$body 
+          body="$(cat ${{env.output-filename}})" 
+          echo "$body"
+          echo "::set-output name=body::$body" 
           echo $body
           fi          
       - name: Find Comment
@@ -149,9 +150,7 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
-            ```
-            ${{ steps.get-comment-body.outputs.body }}
-            ```
+            ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
           reactions: confused
   
