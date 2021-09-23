@@ -52,9 +52,11 @@ jobs:
         password: ${{ secrets.OPENSHIFT_TOKEN }}
     
     - name: Build nodejs Base Image
+      env:
+        OPENSHIFT_NAMESPACE: 3cd915-tools
       run: |
         #docker login -u ${{env.OPENSHIFT_USER}} -p $(oc whoami -t) ${{env.OPENSHIFT_REGISTRY}}   
-        docker pull ${{env.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}} 
+        docker pull ${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}} 
         docker image ls
       working-directory: ${{env.working-directory}}
     - name: Scan nodejs14 Base Image with Aqua Trivy
