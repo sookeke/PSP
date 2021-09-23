@@ -108,11 +108,8 @@ jobs:
           cd ${{env.image-name}}/
           if [ -s ${{env.output-filename}} ]; then
           body=$(cat ${{env.output-filename}}) 
-          cat ${{env.output-filename}}
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}"
           echo ::set-output name=body::$body 
+          echo $body
           fi          
       - name: Find Comment
         if: github.event_name == 'pull_request'
@@ -152,7 +149,9 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
-            ```${{ steps.get-comment-body.outputs.body }}```
+            ```
+            ${{ steps.get-comment-body.outputs.body }}
+            ```
           edit-mode: replace
           reactions: confused
   
