@@ -455,7 +455,7 @@ jobs:
     env:
       working-directory: ./openshift/4.0/templates/base-images/dotnet50
       image-name: dotnet-aspnet
-      tag: 5.0
+      tag: '5.0'
       OPENSHIFT_NAMESPACE: 3cd915-tools
       output-filename: dotnet-aspnet.txt
 
@@ -521,7 +521,7 @@ jobs:
     env:
       working-directory: ./openshift/4.0/templates/base-images/dotnet50
       image-name: dotnet-aspnet
-      tag: 5.0
+      tag: '5.0'
       output-filename: dotnet-aspnet.txt
     steps:
       - uses: actions/checkout@v2
@@ -675,10 +675,10 @@ jobs:
       security-events: write
     env:
       working-directory: ./openshift/4.0/templates/Logging
-      image-name: jenkins-agent-dotnet
+      image-name: pims-logging
       tag: latest
       OPENSHIFT_NAMESPACE: 3cd915-tools
-      output-filename: jenkins-agent-dotnet.txt
+      output-filename: pims-logging.txt
       
       
     steps:
@@ -692,7 +692,7 @@ jobs:
         SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
         OPENSHIFT_REGISTRY: ${{secrets.OPENSHIFT_REGISTRY}} 
 
-      with:
+      with:   
       # URL to your OpenShift cluster.
       # Refer to Step 2.
         openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
