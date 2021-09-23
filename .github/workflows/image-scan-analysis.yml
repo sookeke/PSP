@@ -44,26 +44,26 @@ jobs:
       # Refer to Step 3.
         openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
     
-    - name: Login to GitHub Container Registry
+    - name: Login to OpenShift Container Registry
       uses: docker/login-action@v1
       with:
         registry: ${{secrets.OPENSHIFT_REGISTRY}}
         username: ${{ secrets.OC_USERNAME_SA }}
         password: ${{ secrets.OPENSHIFT_TOKEN }}
     
-    - name: Build nodejs Base Image
+    - name: Pull nodejs Base Image
       env:
         OPENSHIFT_NAMESPACE: 3cd915-tools
       run: |
         #docker login -u ${{env.OPENSHIFT_USER}} -p $(oc whoami -t) ${{env.OPENSHIFT_REGISTRY}}   
         docker pull ${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}} 
-        docker image ls
+        #docker image ls
       working-directory: ${{env.working-directory}}
     - name: Scan nodejs14 Base Image with Aqua Trivy
       id: scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: '${{env.SERVER_URL}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
+        image-ref: '${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -166,20 +166,47 @@ jobs:
       security-events: write
     env:
       working-directory: ./openshift/s2i/nginx-runtime
-      image-name: nginx
+      image-name: nginx-base
       tag: mainline
-      output-filename: nginx.txt
+      output-filename: nginx-base.txt
 
     steps:
     - uses: actions/checkout@v1
-    - name: Build nginx runtime Base Image
+    - name: Authenticate and set context
+      uses: redhat-actions/oc-login@v1
+      env:
+      # These can be stored in secrets, if desired.
+        OPENSHIFT_USER: ${{secrets.OC_USERNAME_SA}}
+        OPENSHIFT_NAMESPACE: 3cd915-tools
+        SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
+        OPENSHIFT_REGISTRY: ${{secrets.OPENSHIFT_REGISTRY}} 
+
+      with:
+      # URL to your OpenShift cluster.
+      # Refer to Step 2.
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+
+      # Authentication Token. Can use username and password instead.
+      # Refer to Step 3.
+        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+    
+    - name: Login to OpenShift Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ${{secrets.OPENSHIFT_REGISTRY}}
+        username: ${{ secrets.OC_USERNAME_SA }}
+        password: ${{ secrets.OPENSHIFT_TOKEN }}
+    
+    - name: Pull Nginx Runtime Base Image
+      env:
+        OPENSHIFT_NAMESPACE: 3cd915-tools
       run: |
-        docker pull ${{env.image-name}}:${{env.tag}}   
+        docker pull ${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}    
       working-directory: ${{env.working-directory}}
     - name: Scan nginx runtime Base Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{env.image-name}}:${{env.tag}}
+        image-ref: '${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -207,9 +234,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       working-directory: ./frontend
-      image-name: nginx
+      image-name: nginx-base
       tag: mainline
-      output-filename: nodejs14.txt
+      output-filename: nginx-base.txt
     steps:
       - uses: actions/checkout@v2
       - name: Download artifact
@@ -252,7 +279,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -266,7 +293,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+            ## ${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -283,19 +310,46 @@ jobs:
       security-events: write
     env:
       working-directory: ./frontend
-      image-name: pims-frontend
-      output-filename: pims-frontend.txt
+      image-name: pims-app
+      tag: latest
+      output-filename: pims-app.txt
 
     steps:
     - uses: actions/checkout@v1
-    - name: Build PIMS React Frontend
+    - name: Authenticate and set context
+      uses: redhat-actions/oc-login@v1
+      env:
+      # These can be stored in secrets, if desired.
+        OPENSHIFT_USER: ${{secrets.OC_USERNAME_SA}}
+        OPENSHIFT_NAMESPACE: 3cd915-tools
+        SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
+        OPENSHIFT_REGISTRY: ${{secrets.OPENSHIFT_REGISTRY}} 
+
+      with:
+      # URL to your OpenShift cluster.
+      # Refer to Step 2.
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+
+      # Authentication Token. Can use username and password instead.
+      # Refer to Step 3.
+        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+    
+    - name: Login to OpenShift Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ${{secrets.OPENSHIFT_REGISTRY}}
+        username: ${{ secrets.OC_USERNAME_SA }}
+        password: ${{ secrets.OPENSHIFT_TOKEN }}
+    - name: Pull PIMS App React Frontend Image
+      env:
+        OPENSHIFT_NAMESPACE: 3cd915-tools
       run: |
-        docker build -t ${{env.image-name}} .   
+        docker pull ${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}    
       working-directory: ${{env.working-directory}}
     - name: Scan PIMS React Frontend Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{env.image-name}}
+        image-ref: '${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -323,8 +377,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       working-directory: ./frontend
-      image-name: pims-frontend
-      output-filename: pims-frontend.txt
+      image-name: pims-app
+      tag: latest
+      output-filename: pims-app.txt
     steps:
       - uses: actions/checkout@v2
       - name: Download artifact
@@ -367,7 +422,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Dockerfile)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -381,7 +436,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+            ## ${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
