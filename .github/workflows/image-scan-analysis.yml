@@ -47,8 +47,8 @@ jobs:
     - name: Login to GitHub Container Registry
       uses: docker/login-action@v1
       with:
-        registry: ${{env.OPENSHIFT_REGISTRY}}
-        username: ${{ env.OPENSHIFT_USER }}
+        registry: ${{secrets.OPENSHIFT_REGISTRY}}
+        username: ${{ secrets.OC_USERNAME_SA }}
         password: ${{ secrets.OPENSHIFT_TOKEN }}
     
     - name: Build nodejs Base Image
