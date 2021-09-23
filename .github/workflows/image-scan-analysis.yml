@@ -33,6 +33,7 @@ jobs:
         OPENSHIFT_USER: ${{secrets.OC_USERNAME_SA}}
         OPENSHIFT_NAMESPACE: 3cd915-tools
         SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
+        OPENSHIFT_REGISTRY: ${{secrets.OPENSHIFT_REGISTRY}} 
 
       with:
       # URL to your OpenShift cluster.
@@ -43,10 +44,17 @@ jobs:
       # Refer to Step 3.
         openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
     
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v1
+      with:
+        registry: ${{env.OPENSHIFT_REGISTRY}}
+        username: ${{ env.OPENSHIFT_USER }}
+        password: ${{ secrets.OPENSHIFT_TOKEN }}
+    
     - name: Build nodejs Base Image
       run: |
-        docker login -u ${{env.OPENSHIFT_USER}} -p $(oc whoami -t) ${{env.SERVER_URL}}   
-        docker pull ${{env.SERVER_URL}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}} 
+        #docker login -u ${{env.OPENSHIFT_USER}} -p $(oc whoami -t) ${{env.OPENSHIFT_REGISTRY}}   
+        docker pull ${{env.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}} 
         docker image ls
       working-directory: ${{env.working-directory}}
     - name: Scan nodejs14 Base Image with Aqua Trivy
