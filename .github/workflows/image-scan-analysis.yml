@@ -869,8 +869,8 @@ jobs:
             ## ${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
-          edit-mode: replace
-          reactions: confused      
+         edit-mode: replace
+         reactions: confused      
         
   jenkins-agent-dotnet:
 
