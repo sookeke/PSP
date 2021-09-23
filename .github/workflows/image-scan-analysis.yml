@@ -83,7 +83,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ${{env.image-name}}_Scan_Report
-        path: pr_${{env.image-name}}/
+        path: ./${{env.image-name}}
         retention-days: 3
   
   comment_nodejs_pr:
@@ -103,16 +103,13 @@ jobs:
         uses: actions/download-artifact@master
         with:
          name: ${{env.image-name}}_Scan_Report
-         path: pr_${{env.image-name}}/
+         path: ./${{env.image-name}}
       - name: Get comment body
         id: get-comment-body
         run: |
-          cd pr_${{env.image-name}}/
-          if [ -s PRBODY.txt ]; then
-          body=$(cat PRBODY.txt)
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}" 
+          #cd pr_${{env.image-name}}/
+          if [ -s ${{env.output-filename}} ]; then
+          body=$(cat ${{env.output-filename}}) 
           echo ::set-output name=body::$body 
           fi          
       - name: Find Comment
@@ -122,23 +119,23 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          body-includes: ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           
       - name: Comment on PR
         if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
-          cd pr_${{env.image-name}}/
+          #cd pr_${{env.image-name}}/
           ls
-          cat ./NR
-          if [ -s PRBODY.txt ]; then
+          #cat ./NR
+          if [ -s ${{env.output-filename}} ]; then
           commentPR () {
             gh pr comment $PRNUM -b "${1}"
           }
-          PRNUM=$(cat ./NR)
-          PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+          PRNUM=${{ github.event.pull_request.number }}
+          PRBODY=$(cat ${{env.output-filename}})
+          INDENTED='## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -152,7 +149,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -251,10 +248,7 @@ jobs:
         run: |
           cd pr_${{env.image-name}}/
           if [ -s PRBODY.txt ]; then
-          body=$(cat PRBODY.txt)
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}" 
+          body=$(cat PRBODY.txt) 
           echo ::set-output name=body::$body 
           fi          
       - name: Find Comment
@@ -264,7 +258,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          body-includes: ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           
       - name: Comment on PR
         if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
@@ -280,7 +274,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
+          INDENTED='## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -294,7 +288,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -395,10 +389,7 @@ jobs:
         run: |
           cd pr_${{env.image-name}}/
           if [ -s PRBODY.txt ]; then
-          body=$(cat PRBODY.txt)
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}" 
+          body=$(cat PRBODY.txt) 
           echo ::set-output name=body::$body 
           fi          
       - name: Find Comment
@@ -408,7 +399,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          body-includes: ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           
       - name: Comment on PR
         if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
@@ -424,7 +415,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
+          INDENTED='## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -438,7 +429,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -536,10 +527,7 @@ jobs:
         run: |
           cd pr_${{env.image-name}}/
           if [ -s PRBODY.txt ]; then
-          body=$(cat PRBODY.txt)
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}" 
+          body=$(cat PRBODY.txt) 
           echo ::set-output name=body::$body 
           fi          
       - name: Find Comment
@@ -549,7 +537,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          body-includes: ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           
       - name: Comment on PR
         if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
@@ -565,7 +553,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
+          INDENTED='## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -579,7 +567,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -680,10 +668,7 @@ jobs:
         run: |
           cd pr_${{env.image-name}}/
           if [ -s PRBODY.txt ]; then
-          body=$(cat PRBODY.txt)
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}" 
+          body=$(cat PRBODY.txt) 
           echo ::set-output name=body::$body 
           fi          
       - name: Find Comment
@@ -693,7 +678,7 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          body-includes: ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           
       - name: Comment on PR
         if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
@@ -709,7 +694,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
+          INDENTED='## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -723,7 +708,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -823,10 +808,7 @@ jobs:
        run: |
           cd pr_${{env.image-name}}/
           if [ -s PRBODY.txt ]; then
-          body=$(cat PRBODY.txt)
-          body="${body//'%'/'%25'}"
-          body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}" 
+          body=$(cat PRBODY.txt) 
           echo ::set-output name=body::$body 
           fi          
      - name: Find Comment
