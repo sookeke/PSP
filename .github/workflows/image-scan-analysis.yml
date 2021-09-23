@@ -818,9 +818,9 @@ jobs:
        with:
          name: ${{env.image-name}}_Scan_Report
          path: pr_${{env.image-name}}/
-      - name: Get comment body
-        id: get-comment-body
-        run: |
+     - name: Get comment body
+       id: get-comment-body
+       run: |
           cd pr_${{env.image-name}}/
           if [ -s PRBODY.txt ]; then
           body=$(cat PRBODY.txt)
@@ -829,20 +829,20 @@ jobs:
           body="${body//$'\r'/'%0D'}" 
           echo ::set-output name=body::$body 
           fi          
-      - name: Find Comment
-        if: github.event_name == 'pull_request'
-        uses: peter-evans/find-comment@v1
-        id: fc
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+     - name: Find Comment
+       if: github.event_name == 'pull_request'
+       uses: peter-evans/find-comment@v1
+       id: fc
+       with:
+         issue-number: ${{ github.event.pull_request.number }}
+         comment-author: 'github-actions[bot]'
+         body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
           
-      - name: Comment on PR
-        if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        run: |
+     - name: Comment on PR
+       if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
+       env:
+         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+       run: |
           cd pr_${{env.image-name}}/
           ls
           cat ./NR
@@ -859,13 +859,13 @@ jobs:
             echo "No vulnerability detected in this image"
           fi  
           
-      - name: Update PR Comment
-        if: github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
-        uses: peter-evans/create-or-update-comment@v1
-        with:
-          comment-id: ${{ steps.fc.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
+     - name: Update PR Comment
+       if: github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
+       uses: peter-evans/create-or-update-comment@v1
+       with:
+         comment-id: ${{ steps.fc.outputs.comment-id }}
+         issue-number: ${{ github.event.pull_request.number }}
+         body: |
             ## ${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
