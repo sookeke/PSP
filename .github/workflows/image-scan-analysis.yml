@@ -20,21 +20,40 @@ jobs:
       security-events: write
     env:
       working-directory: ./openshift/4.0/templates/base-images
-      image-name: nodejs-14
+      image-name: nodejs-14-ubi8
       tag: 1-35
       output-filename: nodejs14.txt
 
     steps:
     - uses: actions/checkout@v1
+    - name: Authenticate and set context
+    uses: redhat-actions/oc-login@v1
+    env:
+      # These can be stored in secrets, if desired.
+      OPENSHIFT_USER: ${{secrets.OC_USERNAME_SA}}
+      OPENSHIFT_NAMESPACE: 3cd915-tools
+      SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
+
+    with:
+      # URL to your OpenShift cluster.
+      # Refer to Step 2.
+      openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+
+      # Authentication Token. Can use username and password instead.
+      # Refer to Step 3.
+      openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+    
     - name: Build nodejs Base Image
       run: |
-        docker pull registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}}   
+        docker login -u ${{env.OPENSHIFT_USER}} -p $(oc whoami -t) ${{env.SERVER_URL}}   
+        docker pull ${{env.SERVER_URL}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}} 
+        docker image ls
       working-directory: ${{env.working-directory}}
-    - name: Scan nodejs Base Image with Aqua Trivy
+    - name: Scan nodejs14 Base Image with Aqua Trivy
       id: scan
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'registry.access.redhat.com/ubi8/${{env.image-name}}:${{env.tag}}'
+        image-ref: '${{env.SERVER_URL}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -63,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       working-directory: ./frontend
-      image-name: nodejs-14
+      image-name: nodejs-14-ubi8
       tag: 1-35
       output-filename: nodejs14.txt
     steps:
@@ -338,7 +357,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Dockerfile)
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -434,7 +453,7 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Dockerfile)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
@@ -530,6 +549,7 @@ jobs:
    
   build_logging:
   
+    if: always()
     needs: [build_frontend, build_backend] 
     name: logging
     runs-on: ubuntu-latest
