@@ -152,7 +152,7 @@ jobs:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+            ## ${{env.image-name}}:${{env.tag}} vulnerability report
             
             ```${{ steps.get-comment-body.outputs.body }}```
           edit-mode: replace
@@ -228,10 +228,10 @@ jobs:
         path: pr_${{env.image-name}}/
         retention-days: 3
 
-  comment_nginx_pr:
+  comment_nginx_pr: 
   # this action will leave a comment in response to vulnerability scans performed on cotnainer image
     if: always() && needs.nginx-base-image.result == 'failure' && github.event_name == 'pull_request'
-    needs: nodejs-base-image
+    needs: nginx-base-image
     runs-on: ubuntu-latest
     env:
       working-directory: ./frontend
@@ -531,7 +531,28 @@ jobs:
          name: ${{env.image-name}}_Scan_Report
          path: pr_${{env.image-name}}/
 
+      - name: Get comment body
+        id: get-comment-body
+        run: |
+          cd pr_${{env.image-name}}/
+          if [ -s PRBODY.txt ]; then
+          body=$(cat PRBODY.txt)
+          body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}" 
+          echo ::set-output name=body::$body 
+          fi          
+      - name: Find Comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v1
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          
       - name: Comment on PR
+        if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
@@ -544,13 +565,25 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Docker pull)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
-            echo "No vulnerability"
-          fi 
-
+            echo "No vulnerability detected in this image"
+          fi  
+          
+      - name: Update PR Comment
+        if: github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            
+            ```${{ steps.get-comment-body.outputs.body }}```
+          edit-mode: replace
+          reactions: confused 
   
   build_backend:
     
@@ -599,11 +632,11 @@ jobs:
     - name: Pull PIMS Backend API Image
       run: |
         docker pull ${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}  
-      working-directory: '${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
+      working-directory: ${{env.working-directory}}
     - name: Scan PIMS Backend API Image with Aqua Trivy
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: ${{env.image-name}}
+        image-ref: '${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -642,7 +675,28 @@ jobs:
          name: ${{env.image-name}}_Scan_Report
          path: pr_${{env.image-name}}/
 
+      - name: Get comment body
+        id: get-comment-body
+        run: |
+          cd pr_${{env.image-name}}/
+          if [ -s PRBODY.txt ]; then
+          body=$(cat PRBODY.txt)
+          body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}" 
+          echo ::set-output name=body::$body 
+          fi          
+      - name: Find Comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v1
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          
       - name: Comment on PR
+        if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
@@ -655,12 +709,25 @@ jobs:
           }
           PRNUM=$(cat ./NR)
           PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report (Built from Dockerfile)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
           ```'${PRBODY}'```';
             commentPR "$INDENTED"
           else
-            echo "No vulnerability detected"
-          fi 
+            echo "No vulnerability detected in this image"
+          fi  
+          
+      - name: Update PR Comment
+        if: github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            
+            ```${{ steps.get-comment-body.outputs.body }}```
+          edit-mode: replace
+          reactions: confused 
 
    
   build_logging:
@@ -734,6 +801,76 @@ jobs:
         name: ${{env.image-name}}_Scan_Report
         path: pr_${{env.image-name}}/
         retention-days: 3
+   
+  comment_logging_pr:
+  # this action will leave a comment in response to credential scans performed on pull requests
+    if: always() && needs.build_logging.result == 'failure' && github.event_name == 'pull_request'
+    needs: build_logging 
+    runs-on: ubuntu-latest
+    env:
+      working-directory: ./openshift/4.0/templates/jenkins-slaves/jenkins-slave-zap
+      image-name: pims-logging
+      output-filename: pims-logging.txt
+    steps:
+     - uses: actions/checkout@v2
+     - name: Download artifact
+        uses: actions/download-artifact@master
+        with:
+         name: ${{env.image-name}}_Scan_Report
+         path: pr_${{env.image-name}}/
+      - name: Get comment body
+        id: get-comment-body
+        run: |
+          cd pr_${{env.image-name}}/
+          if [ -s PRBODY.txt ]; then
+          body=$(cat PRBODY.txt)
+          body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}" 
+          echo ::set-output name=body::$body 
+          fi          
+      - name: Find Comment
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/find-comment@v1
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          
+      - name: Comment on PR
+        if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          cd pr_${{env.image-name}}/
+          ls
+          cat ./NR
+          if [ -s PRBODY.txt ]; then
+          commentPR () {
+            gh pr comment $PRNUM -b "${1}"
+          }
+          PRNUM=$(cat ./NR)
+          PRBODY=$(cat ./PRBODY.txt)
+          INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
+          ```'${PRBODY}'```';
+            commentPR "$INDENTED"
+          else
+            echo "No vulnerability detected in this image"
+          fi  
+          
+      - name: Update PR Comment
+        if: github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            
+            ```${{ steps.get-comment-body.outputs.body }}```
+          edit-mode: replace
+          reactions: confused      
         
   jenkins-agent-dotnet:
 
@@ -808,7 +945,7 @@ jobs:
    
   comment_agent_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
-    if: always() && needs.build_zap.result == 'failure' && github.event_name == 'pull_request'
+    if: always() && needs.jenkins-agent-dotnet.result == 'failure' && github.event_name == 'pull_request'
     needs: jenkins-agent-dotnet 
     runs-on: ubuntu-latest
     env:
@@ -816,28 +953,62 @@ jobs:
       image-name: jenkins-agent-dotnet
       output-filename: jenkins-agent-dotnet.txt
     steps:
-      - uses: actions/checkout@v2
-      - name: Download artifact
-        uses: actions/download-artifact@master
-        with:
-         name: ${{env.image-name}}_Scan_Report
-         path: pr_${{env.image-name}}/
-      - name: Comment on PR
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        run: |
-          cd pr_${{env.image-name}}/
-          ls
-          cat ./NR
-          if [ -s PRBODY.txt ]; then
-          commentPR () {
-            gh pr comment $PRNUM -b "${1}"
-          }
-          PRNUM=$(cat ./NR)
-          PRBODY=$(cat ./PRBODY.txt)
-          INDENTED='## ${{env.image-name}} vulnerability report (built from Dockerfile)
-          ```'${PRBODY}'```';
-            commentPR "$INDENTED"
-          else
-            echo "No vulnerability"
-          fi
+    - uses: actions/checkout@v2
+    - name: Download artifact
+      uses: actions/download-artifact@master
+      with:
+        name: ${{env.image-name}}_Scan_Report
+        path: pr_${{env.image-name}}/
+    - name: Get comment body
+      id: get-comment-body
+      run: |
+        cd pr_${{env.image-name}}/
+        if [ -s PRBODY.txt ]; then
+        body=$(cat PRBODY.txt)
+        body="${body//'%'/'%25'}"
+        body="${body//$'\n'/'%0A'}"
+        body="${body//$'\r'/'%0D'}" 
+        echo ::set-output name=body::$body 
+        fi          
+    - name: Find Comment
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/find-comment@v1
+      id: fc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: ${{env.image-name}}:${{env.tag}} vulnerability report
+          
+    - name: Comment on PR
+      if: steps.fc.outputs.comment-id == '' && steps.get-comment-body.outcome != 'failure'
+      env:
+        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      run: |
+        cd pr_${{env.image-name}}/
+        ls
+        cat ./NR
+        if [ -s PRBODY.txt ]; then
+        commentPR () {
+          gh pr comment $PRNUM -b "${1}"
+        }
+        PRNUM=$(cat ./NR)
+        PRBODY=$(cat ./PRBODY.txt)
+        INDENTED='## ${{env.image-name}}:${{env.tag}} vulnerability report
+        ```'${PRBODY}'```';
+          commentPR "$INDENTED"
+        else
+          echo "No vulnerability detected in this image"
+        fi  
+          
+    - name: Update PR Comment
+      if: github.event_name == 'pull_request' && steps.fc.outputs.comment-id != ''
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ## ${{env.image-name}}:${{env.tag}} vulnerability report
+            
+          ```${{ steps.get-comment-body.outputs.body }}```
+        edit-mode: replace
+        reactions: confused 
