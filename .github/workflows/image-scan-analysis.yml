@@ -27,21 +27,21 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Authenticate and set context
-    uses: redhat-actions/oc-login@v1
-    env:
+      uses: redhat-actions/oc-login@v1
+      env:
       # These can be stored in secrets, if desired.
-      OPENSHIFT_USER: ${{secrets.OC_USERNAME_SA}}
-      OPENSHIFT_NAMESPACE: 3cd915-tools
-      SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
+        OPENSHIFT_USER: ${{secrets.OC_USERNAME_SA}}
+        OPENSHIFT_NAMESPACE: 3cd915-tools
+        SERVER_URL: ${{secrets.OPENSHIFT_SERVER}}
 
-    with:
+      with:
       # URL to your OpenShift cluster.
       # Refer to Step 2.
-      openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
+        openshift_server_url: ${{ secrets.OPENSHIFT_SERVER }}
 
       # Authentication Token. Can use username and password instead.
       # Refer to Step 3.
-      openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
+        openshift_token: ${{ secrets.OPENSHIFT_TOKEN }}
     
     - name: Build nodejs Base Image
       run: |
