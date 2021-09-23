@@ -444,9 +444,9 @@ jobs:
           edit-mode: replace
           reactions: confused 
    
-  dotnet5-runtime:
+  aspnet-runtime:
 
-    name: dotnet5-runtime
+    name: aspnet-runtime
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -515,7 +515,7 @@ jobs:
   
   comment_aspnet_pr:
   # this action will leave a comment in response to credential scans performed on pull requests
-    if: always() && needs.dotnet5-runtime.result == 'failure' && github.event_name == 'pull_request'
+    if: always() && needs.aspnet-runtime.result == 'failure' && github.event_name == 'pull_request'
     needs: aspnet-runtime 
     runs-on: ubuntu-latest
     env:
