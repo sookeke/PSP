@@ -83,7 +83,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ${{env.image-name}}_Scan_Report
-        path: ./${{env.image-name}}
+        path: ./${{env.output-filename}}
         retention-days: 3
   
   comment_nodejs_pr:
