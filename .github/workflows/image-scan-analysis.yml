@@ -22,6 +22,7 @@ jobs:
       working-directory: ./openshift/4.0/templates/base-images
       image-name: nodejs-14-ubi8
       tag: 1-35
+      OPENSHIFT_NAMESPACE: 3cd915-tools
       output-filename: nodejs14.txt
 
     steps:
@@ -94,6 +95,7 @@ jobs:
       working-directory: ./frontend
       image-name: nodejs-14-ubi8
       tag: 1-35
+      OPENSHIFT_NAMESPACE: 3cd915-tools
       output-filename: nodejs14.txt
     steps:
       - uses: actions/checkout@v2
@@ -168,6 +170,7 @@ jobs:
       working-directory: ./openshift/s2i/nginx-runtime
       image-name: nginx-base
       tag: mainline
+      OPENSHIFT_NAMESPACE: 3cd915-tools
       output-filename: nginx-base.txt
 
     steps:
@@ -198,8 +201,6 @@ jobs:
         password: ${{ secrets.OPENSHIFT_TOKEN }}
     
     - name: Pull Nginx Runtime Base Image
-      env:
-        OPENSHIFT_NAMESPACE: 3cd915-tools
       run: |
         docker pull ${{secrets.OPENSHIFT_REGISTRY}}/${{env.OPENSHIFT_NAMESPACE}}/${{env.image-name}}:${{env.tag}}    
       working-directory: ${{env.working-directory}}
@@ -312,6 +313,7 @@ jobs:
       working-directory: ./frontend
       image-name: pims-app
       tag: latest
+      OPENSHIFT_NAMESPACE: 3cd915-tools
       output-filename: pims-app.txt
 
     steps:
