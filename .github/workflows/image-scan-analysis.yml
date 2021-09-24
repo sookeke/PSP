@@ -81,13 +81,10 @@ jobs:
         path: ./${{env.output-filename}}
         retention-days: 3
         if-no-files-found: error
-    - id: hasreport
-      if: always() && steps.upload.outcome == 'success'
-      run: echo "::set-output name=report::success"
   
   comment_nodejs_pr:
   # this action will leave a comment in response to vulnerability scans performed on cotnainer image
-    if: always() && needs.nodejs-base-image.outputs.report == 'success' && github.event_name == 'pull_request'
+    if: always() && needs.nodejs-base-image.result == 'failure' && github.event_name == 'pull_request'
     needs: nodejs-base-image
     runs-on: ubuntu-latest
     env:
