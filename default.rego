@@ -19,27 +19,3 @@ ignore {
 ignore {
 	input.Severity == ignore_severities[_]
 }
-
-# Ignore a vulnerability which is not remotely exploitable
-ignore {
-	cvss_vector := trivy.parse_cvss_vector_v3(nvd_v3_vector)
-	cvss_vector.AttackVector != "Network"
-}
-
-# Ignore a vulnerability which requires high privilege
-ignore {
-	cvss_vector := trivy.parse_cvss_vector_v3(nvd_v3_vector)
-	cvss_vector.PrivilegesRequired == "High"
-}
-
-# Ignore a vulnerability which requires user interaction
-ignore {
-	cvss_vector := trivy.parse_cvss_vector_v3(nvd_v3_vector)
-	cvss_vector.UserInteraction == "Required"
-}
-
-# Ignore CSRF
-ignore {
-	# https://cwe.mitre.org/data/definitions/352.html
-	input.CweIDs[_] == "CWE-352"
-}
