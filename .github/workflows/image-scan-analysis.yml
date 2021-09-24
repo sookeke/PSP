@@ -81,8 +81,8 @@ jobs:
         retention-days: 3
         if-no-files-found: error
     - id: hasreport
-        if: always() && steps.upload.outcome == 'success'
-        run: echo "::set-output name=report::success"
+      if: always() && steps.upload.outcome == 'success'
+      run: echo "::set-output name=report::success"
   
   comment_nodejs_pr:
   # this action will leave a comment in response to vulnerability scans performed on cotnainer image
