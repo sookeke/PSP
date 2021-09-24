@@ -2,7 +2,7 @@ package trivy
 
 import data.lib.trivy
 
-default ignore = false
+default ignore = true
 
 ignore_pkgs := {"bash", "bind-license", "rpm", "vim", "vim-minimal"}
 
