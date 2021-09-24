@@ -68,6 +68,7 @@ jobs:
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
+        ignore-policy: './default.rego'
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
         output: ${{env.output-filename}}
