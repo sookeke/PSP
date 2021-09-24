@@ -12,6 +12,8 @@ jobs:
 
     name: nodejs-base-image
     runs-on: ubuntu-latest
+    outputs:
+      nodejs: ${{ steps.hasreport.outputs.report }}
     permissions:
       actions: read
       contents: read
@@ -69,24 +71,22 @@ jobs:
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
         output: ${{env.output-filename}}
-    - name: Save PR number and scan results
-      id: scan-result
-      if: failure() && steps.scan.outcome == 'failure'
-      run: |
-          mkdir -p ./pr_${{env.image-name}}
-          echo ${{ github.event.pull_request.number }} > ./pr_${{env.image-name}}/NR
-          cp ${{env.output-filename}} ./pr_${{env.image-name}}/PRBODY.txt
-    - if: failure() && steps.scan.outcome == 'failure' && steps.scan-result.outcome == 'success' 
+    - if: failure() && steps.scan.outcome == 'failure'
+      id: upload
       name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: ${{env.image-name}}_Scan_Report
         path: ./${{env.output-filename}}
         retention-days: 3
+        if-no-files-found: error
+    - id: hasreport
+        if: always() && steps.upload.outcome == 'success'
+        run: echo "::set-output name=report::success"
   
   comment_nodejs_pr:
   # this action will leave a comment in response to vulnerability scans performed on cotnainer image
-    if: always() && needs.nodejs-base-image.result == 'failure' && github.event_name == 'pull_request'
+    if: always() && needs.nodejs-base-image.outputs.report == 'success' && github.event_name == 'pull_request'
     needs: nodejs-base-image
     runs-on: ubuntu-latest
     env:
@@ -111,9 +111,7 @@ jobs:
           body="${body//'%'/'%25'}"
           body="${body//$'\n'/'%0A'}"
           body="${body//$'\r'/'%0D'}" 
-          #echo "$body"
-          echo "::set-output name=body::$body" 
-          echo $body
+          echo "::set-output name=body::$body"
           fi          
       - name: Find Comment
         if: github.event_name == 'pull_request'
@@ -130,8 +128,6 @@ jobs:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         run: |
           cd ${{env.image-name}}/
-          ls
-          #cat ./NR
           if [ -s ${{env.output-filename}} ]; then
           commentPR () {
             gh pr comment $PRNUM -b "${1}"
