@@ -2,7 +2,7 @@ package trivy
 
 import data.lib.trivy
 
-default ignore = true
+default ignore = false
 
 ignore_pkgs := {"systemd", "vim"}
 
