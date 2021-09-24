@@ -108,9 +108,9 @@ jobs:
           cd ${{env.image-name}}/
           if [ -s ${{env.output-filename}} ]; then
           body="$(cat ${{env.output-filename}})" 
-          <font color="#FF0000"> body="${body//'%'/'%25'}"
+          body="${body//'%'/'%25'}"
           body="${body//$'\n'/'%0A'}"
-          body="${body//$'\r'/'%0D'}"</font>
+          body="${body//$'\r'/'%0D'}" 
           #echo "$body"
           echo "::set-output name=body::$body" 
           echo $body
