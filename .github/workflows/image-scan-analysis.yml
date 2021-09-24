@@ -108,7 +108,10 @@ jobs:
           cd ${{env.image-name}}/
           if [ -s ${{env.output-filename}} ]; then
           body="$(cat ${{env.output-filename}})" 
-          echo "$body"
+          <font color="#FF0000"> body="${body//'%'/'%25'}"
+          body="${body//$'\n'/'%0A'}"
+          body="${body//$'\r'/'%0D'}"</font>
+          #echo "$body"
           echo "::set-output name=body::$body" 
           echo $body
           fi          
@@ -150,7 +153,7 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             ## ${{secrets.OPENSHIFT_REGISTRY}}/${{env.image-name}}:${{env.tag}} vulnerability report
-            ``` echo "${{ steps.get-comment-body.outputs.body }}"```
+            ```bash echo "${{ steps.get-comment-body.outputs.body }}"```
           edit-mode: replace
           reactions: confused
   
