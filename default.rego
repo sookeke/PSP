@@ -4,7 +4,7 @@ import data.lib.trivy
 
 default ignore = true
 
-ignore_pkgs := {"kernel-headers", "systemd", "vim", "systemd-pam"}
+ignore_pkgs := {"systemd", "vim"}
 
 ignore_severities := {"LOW", "MEDIUM"}
 
