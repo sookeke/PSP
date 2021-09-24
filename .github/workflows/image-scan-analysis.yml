@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [master, test, pims-sookeke, sookeke-patch-1]
   schedule:
-    - cron: '42 15 * * 5'
+    - cron: '30 5 14 * *' # Run this scan every sprint release cycle 14th of every month at 5:30 UTC
 
 jobs:
 
