@@ -1,8 +1,8 @@
-name: Security CI
+name: Image Security Scan
 
 on:
   pull_request:
-    branches: [master, test, pims-sookeke, sookeke-patch-1]
+    branches: [sookeke-patch-1]
   schedule:
     - cron: '30 5 14 * *' # Run this scan every sprint release cycle 14th of every month at 5:30 UTC
 
