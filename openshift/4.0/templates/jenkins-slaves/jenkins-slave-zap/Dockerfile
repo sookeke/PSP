@@ -1,10 +1,11 @@
-FROM centos:centos7
+FROM centos:centos8
 LABEL maintainer="Deven Phillips <deven.phillips@redhat.com>"
 
-ARG ZAPROXY_VERSION="2.9.0"
-ARG WEBSWING_VERSION="2.5.10"
+ARG ZAPROXY_VERSION="2.10.0"
+ARG WEBSWING_VERSION="21.1.5"
 
-RUN yum install -y epel-release && \
+
+RUN yum -y update && yum install -y epel-release && \   
     yum clean all && \
     yum install -y redhat-rpm-config \
     make automake autoconf gcc gcc-c++ \
@@ -12,16 +13,44 @@ RUN yum install -y epel-release && \
     java-1.8.0-openjdk wget curl \
     xmlstarlet git x11vnc gettext tar \
     xorg-x11-server-Xvfb openbox xterm \
-    net-tools python-pip \
+    net-tools unzip zlib-devel rsync \
     firefox nss_wrapper java-1.8.0-openjdk-headless \
-    java-1.8.0-openjdk-devel nss_wrapper && \
-    yum clean all && \
-    curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && chmod 755 get-pip.py && ./get-pip.py && \
-    pip install --upgrade pip && \
-    pip install zapcli && \
-    pip install python-owasp-zap-v2.4 && \
-    mkdir -p /zap/{wrk,webswing} && \
-    mkdir -p /var/lib/jenkins/.vnc
+    java-1.8.0-openjdk-devel nss_wrapper
+RUN yum groupinstall -y "Development Tools" && \
+    yum install -y \
+        cairo-devel \
+        dejavu-sans-fonts \
+        libffi-devel \
+        libxml2-devel \
+        libxslt-devel \
+        openssl-devel 
+    
+RUN yum clean all 
+    
+    #Download and install Pyhton 3.7 for RHEL 8
+RUN curl https://www.python.org/ftp/python/3.7.0/Python-3.7.0.tgz -O -J -L && \
+    tar xzf Python-3.7.0.tgz -C /usr/src/ && \
+    rm -f /usr/bin/python3 && \
+    /usr/src/Python-3.7.0/configure --enable-optimizations --prefix=/usr/bin/python3 && \
+    make altinstall && \
+    ln -s /usr/bin/python3/bin/python3.7 /usr/bin/python3.7 && \
+    rm Python-3.7.0.tgz 
+    
+ # set python3.7 as default
+RUN alternatives --install /usr/bin/unversioned-python python /usr/bin/python3.7 70
+RUN alternatives --set python /usr/bin/python3.7
+RUN ln -s /usr/bin/unversioned-python /usr/bin/python
+# Add python binaries to the PATH
+ENV PATH=/usr/bin/python3/bin:$PATH
+    
+    #&& \
+    #curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py && chmod 755 get-pip.py && ./get-pip.py && \
+ RUN ln -s /usr/bin/python3/bin/pip3.7 /usr/bin/pip && \
+     pip --version && pip install --upgrade pip && \
+     pip install zapcli && \
+     pip install python-owasp-zap-v2.4 && \
+     mkdir -p /zap/{wrk,webswing} && \
+     mkdir -p /var/lib/jenkins/.vnc
 
 # Copy the entrypoint 
 COPY configuration/* /var/lib/jenkins/
@@ -37,19 +66,23 @@ COPY .xinitrc /var/lib/jenkins/
 
 WORKDIR /zap
 RUN curl -sL https://github.com/zaproxy/zaproxy/releases/download/v${ZAPROXY_VERSION}/ZAP_${ZAPROXY_VERSION}_Linux.tar.gz | tar zx --strip-components=1 && \
-    curl -sL https://bitbucket.org/meszarv/webswing/get/${WEBSWING_VERSION}.tar.gz | tar zx --strip-components=1 -C webswing && \
-    rm -rf webswing/demo && \
-    touch AcceptedLicense && \
-    git clone --depth 1 --branch v${ZAPROXY_VERSION} https://github.com/zaproxy/zaproxy /tmp/zaproxy && \
-    rsync -av /tmp/zaproxy/docker/{policies,scripts,zap*} /zap/ && \
-    rsync -av /tmp/zaproxy/docker/policies /var/lib/jenkins/.ZAP/ && \
-    rsync -av /tmp/zaproxy/docker/webswing.config /zap/webswing/webswing.config && \
-    rm -rf /tmp/zaproxy && \
-    touch /.dockerenv && \
-    chown root:root /zap -R && \
-    chown root:root -R /var/lib/jenkins && \
-    chmod 777 /var/lib/jenkins -R && \
-    chmod 777 /zap -R
+	# Setup Webswing
+	curl -s -L "https://storage.googleapis.com/builds.webswing.org/releases/webswing-examples-eval-${WEBSWING_VERSION}-distribution.zip" > webswing.zip && \
+	unzip webswing.zip && \
+	rm webswing.zip && \
+	mv webswing-* webswing && \
+	rm -Rf webswing/apps/ && \
+    	touch AcceptedLicense && \
+   	git clone --depth 1 --branch v${ZAPROXY_VERSION} https://github.com/zaproxy/zaproxy /tmp/zaproxy && \
+    	rsync -av /tmp/zaproxy/docker/{policies,scripts,zap*} /zap/ && \
+    	rsync -av /tmp/zaproxy/docker/policies /var/lib/jenkins/.ZAP/ && \
+    	rsync -av /tmp/zaproxy/docker/webswing.config /zap/webswing/webswing.config && \
+    	rm -rf /tmp/zaproxy && \
+    	touch /.dockerenv && \
+    	chown root:root /zap -R && \
+    	chown root:root -R /var/lib/jenkins && \
+    	chmod 777 /var/lib/jenkins -R && \
+    	chmod 777 /zap -R
 
 WORKDIR /var/lib/jenkins
 
