@@ -7,7 +7,7 @@ The pims-logging can run as a sidecar or as a standalone container/pod - It will
 - Send archieved logs to Azure blob or s3 container using curl
 - Sleep and repeat.
 
-Will require that your namespace default service account has view permission, so it can get read other pod's logs.
+this Will require that your namespace default service account has view permission, so it can get read other pod's logs.
 
 ## Build dockerfile and push pims-logging image to openshift image registar
 
